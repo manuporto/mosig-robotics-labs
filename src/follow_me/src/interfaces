@@ -1,0 +1,10 @@
+# interfaces(5) file used by ifup(8) and ifdown(8)
+auto lo
+iface lo inet loopback
+
+
+allow-hotplug enp0s31f6
+iface enp0s31f6 inet static
+address 192.168.0.174
+broadcast 192.168.0.255
+netmask 255.255.255.0
