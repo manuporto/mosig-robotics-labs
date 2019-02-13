@@ -184,18 +184,17 @@ void store_background() {
 
 void detect_motion() {
 
+
     ROS_INFO("detecting motion");
 
-    for (int loop = 0; loop<nb_beams; loop++ ) {//loop over all the hits
-        if (abs(background[loop] - range[loop]) > detection_threshold) {
-        //if the difference between ( the background and the current value ) is higher than "detection_threshold" {
-            dynamic[loop] = 1; //the current hit is dynamic
-        }
-        else {
-            dynamic[loop] = 0; //else its static
-        }
-    }
+    for (int loop=0; loop<nb_beams; loop++ ){//loop over all the hits
+        if(range[loop] - background[loop] > detection_threshold)// the difference between ( the background and the current value ) is higher than "detection_threshold"
+             dynamic[loop] = 1;//the current hit is dynamic
+        else
+            dynamic[loop] = 0;//else its static
+}
     ROS_INFO("motion detected");
+
 
 }//detect_motion
 
@@ -203,6 +202,7 @@ void detect_motion() {
 /*//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////*/
 void perform_clustering() {
+
 //store in the table cluster, the cluster of each hit of the laser
 //if the distance between the previous hit and the current one is lower than "cluster_threshold"
 //then the current hit belongs to the current cluster
@@ -216,7 +216,6 @@ void perform_clustering() {
     cluster_start[0] = 0;// the first hit is the start of the first cluster
     cluster[0] = 0;// the first hit belongs to the first cluster
     int nb_dynamic = 0;// to count the number of hits of the current cluster that are dynamic
-    int nb_total = 1; // to count the total number of hits of the current cluster
 
     //graphical display of the start of the current cluster in green
     display[nb_pts].x = current_scan[cluster_start[nb_cluster]].x;
@@ -228,29 +227,31 @@ void perform_clustering() {
     colors[nb_pts].b = 0;
     colors[nb_pts].a = 1.0;
     nb_pts++;
-    int loop;
-    for( loop = 1; loop<nb_beams; loop++ ) { //loop over all the hits
-        //if distance between (the previous hit and the current one) is lower than "cluster_threshold"
-        if (distancePoints(current_scan[loop - 1], current_scan[loop]) < cluster_threshold) { //the current hit belongs to the current cluster
-            cluster[loop] = nb_cluster;
-            if (dynamic[loop]) nb_dynamic++;
-            nb_total++;
-        } else { //the current hit doesnt belong to the same hit
-            //   1/ we end the current cluster, so we update:
-            //   - cluster-end to store the last hit of the current cluster
-            //   - cluster_dynamic to store the percentage of hits of the current cluster that are dynamic
-            //   - cluster_size to store the size of the cluster ie, the distance between the first hit of the cluster and the last one
-            //   - cluster_middle to store the middle of the cluster
 
-            cluster_end[nb_cluster] = loop;
-            cluster_dynamic[nb_cluster] = nb_dynamic > 0 ? int(nb_total / nb_dynamic) : 0;
-            cluster_size[nb_cluster] = distancePoints(current_scan[cluster_start[nb_cluster]], current_scan[cluster_end[nb_cluster]]);
-            geometry_msgs::Point first_point = current_scan[cluster_start[nb_cluster]];
-            geometry_msgs::Point last_point =  current_scan[cluster_end[nb_cluster]];
-            geometry_msgs::Point middle_point;
-            middle_point.x = (first_point.x + last_point.x) / 2;
-            middle_point.y = (first_point.x + last_point.y) / 2;
-            cluster_middle[nb_cluster] = middle_point;
+    for( int loop=1; loop<nb_beams; loop++ ){//loop over all the hits
+        if(distancePoints(current_scan[loop-1], current_scan[loop])<cluster_threshold)//distance between (the previous hit and the current one) is lower than "cluster_threshold"
+          {
+            cluster[loop] = nb_cluster;
+          }
+         //the current hit belongs to the current cluster
+
+        else {//the current hit doesnt belong to the same hit
+              //1/ we end the current cluster, so we update:
+              //- cluster-end to store the last hit of the current cluster
+              cluster_end[nb_cluster] = loop-1;
+              //- cluster_dynamic to store the percentage of hits of the current cluster that are dynami
+              if(cluster_end[nb_cluster] != cluster_start[nb_cluster]){
+                cluster_dynamic[nb_cluster] = 100*nb_dynamic/(cluster_end[nb_cluster] - cluster_start[nb_cluster]);
+              }
+              // - cluster_size to store the size of the cluster ie, the distance between the first hit of the cluster and the last one
+              cluster_size[nb_cluster] = distancePoints(current_scan[cluster_start[nb_cluster]],  current_scan[cluster_end[nb_cluster]]);
+              // - cluster_middle to store the middle of the cluster
+              if((cluster_start[nb_cluster] + cluster_end[nb_cluster])%2 == 1){
+                cluster_middle[nb_cluster] = current_scan[(cluster_start[nb_cluster] + cluster_end[nb_cluster])/2 - 1];
+              }
+              else{
+                cluster_middle[nb_cluster] = current_scan[(cluster_start[nb_cluster] + cluster_end[nb_cluster])/2];
+              }
 
             //graphical display of the end of the current cluster in red
             display[nb_pts].x = current_scan[cluster_end[nb_cluster]].x;
@@ -266,14 +267,14 @@ void perform_clustering() {
             //textual display
             ROS_INFO("cluster[%i]: [%i](%f, %f) -> [%i](%f, %f), size: %f, dynamic: %i", nb_cluster, cluster_start[nb_cluster], current_scan[cluster_start[nb_cluster]].x, current_scan[cluster_start[nb_cluster]].y, cluster_end[nb_cluster], current_scan[cluster_end[nb_cluster]].x, current_scan[cluster_end[nb_cluster]].y, cluster_size[nb_cluster], cluster_dynamic[nb_cluster]);
 
-            // 2/ we start a new cluster with the current hit
-            nb_total = 1;
+            // 2/ we starta new cluster with the current hit
             nb_dynamic = 0;// to count the number of hits of the current cluster that are dynamic
             nb_cluster++;
             cluster_start[nb_cluster] = loop;
             cluster[loop] = nb_cluster;
-            if ( dynamic[loop] )
+            if ( dynamic[loop] ){
                 nb_dynamic++;
+              }
 
             //graphical display of the start of the current cluster in green
             display[nb_pts].x = current_scan[cluster_start[nb_cluster]].x;
@@ -285,20 +286,26 @@ void perform_clustering() {
             colors[nb_pts].b = 0;
             colors[nb_pts].a = 1.0;
             nb_pts++;
+
         }
-    }
+      }
+
     //Dont forget to update the different information for the last cluster
-    //...
-    cluster_end[nb_cluster] = loop;
-    cluster_dynamic[nb_cluster] = nb_dynamic > 0 ? int(nb_total / nb_dynamic) : 0;
-    cluster_size[nb_cluster] = distancePoints(current_scan[cluster_start[nb_cluster]], current_scan[cluster_end[nb_cluster]]);
-    geometry_msgs::Point first_point = current_scan[cluster_start[nb_cluster]];
-    geometry_msgs::Point last_point =  current_scan[cluster_end[nb_cluster]];
-    geometry_msgs::Point middle_point;
-    middle_point.x = (first_point.x + last_point.x) / 2;
-    middle_point.y = (first_point.x + last_point.y) / 2;
-    cluster_middle[nb_cluster] = middle_point;
-    nb_cluster++;
+    cluster_end[nb_cluster] = nb_beams-1;
+    //- cluster_dynamic to store the percentage of hits of the current cluster that are dynami
+    if(cluster_end[nb_cluster] != cluster_start[nb_cluster]){
+      cluster_dynamic[nb_cluster] = 100*nb_dynamic/(cluster_end[nb_cluster] - cluster_start[nb_cluster]);
+    }
+    // - cluster_size to store the size of the cluster ie, the distance between the first hit of the cluster and the last one
+    cluster_size[nb_cluster] = distancePoints(current_scan[cluster_start[nb_cluster]],  current_scan[cluster_end[nb_cluster]]);
+    // cluster_size[nb_cluster] = cluster_end[nb_cluster] - cluster_start[nb_cluster];
+    // - cluster_middle to store the middle of the cluster
+    if((cluster_start[nb_cluster] + cluster_end[nb_cluster])%2 == 1){
+      cluster_middle[nb_cluster] = current_scan[(cluster_start[nb_cluster] + cluster_end[nb_cluster])/2 - 1];
+    }
+    else{
+      cluster_middle[nb_cluster] = current_scan[(cluster_start[nb_cluster] + cluster_end[nb_cluster])/2];
+    }
 
     ROS_INFO("clustering performed");
 
@@ -316,13 +323,14 @@ void detect_moving_legs() {
     ROS_INFO("detecting moving legs");
     nb_moving_legs_detected = 0;
 
-    for (int loop=0; loop<nb_cluster; loop++) {//loop over all the clusters
-        // if the size of the current cluster is higher than "leg_size_min" and lower than "leg_size_max" and it has "dynamic_threshold"% of its hits that are dynamic
-        // then the current cluster is a moving leg
-        if (cluster_size[loop] > leg_size_min && cluster_size[loop] < leg_size_max && cluster_dynamic[loop] > dynamic_threshold) {
+    for (int loop=0; loop<nb_cluster; loop++){//loop over all the clusters
+	// ROS_INFO("moving legs detector cluster dynamic [%i], cluster_size [%f]",cluster_dynamic[loop] , cluster_size[loop]);
+        if(cluster_size[loop] >= leg_size_min && cluster_size[loop] <= leg_size_max ){//&& cluster_dynamic[loop] >= dynamic_threshold){//the size of the current cluster is higher than "leg_size_min" and lower than "leg_size_max" and it has "dynamic_threshold"% of its hits that are dynamic
+        //then the current cluster is a moving leg
+
             // we update the moving_leg_detected table to store the middle of the moving leg
-            nb_moving_legs_detected++;
             moving_leg_detected[nb_moving_legs_detected] = cluster_middle[loop];
+            nb_moving_legs_detected++;
 
             //textual display
             ROS_INFO("moving leg detected[%i]: cluster[%i]", nb_moving_legs_detected, loop);
@@ -341,8 +349,9 @@ void detect_moving_legs() {
 
                 nb_pts++;
             }
+          }
         }
-    }
+
     if ( nb_moving_legs_detected )
         ROS_INFO("%d moving legs have been detected.\n", nb_moving_legs_detected);
 
@@ -356,19 +365,19 @@ void detect_moving_persons() {
     ROS_INFO("detecting moving persons");
     nb_moving_persons_detected = 0;
 
-    for (int loop_leg1=0; loop_leg1<nb_moving_legs_detected; loop_leg1++) {//loop over all the legs
-        for (int loop_leg2=loop_leg1+1; loop_leg2<nb_moving_legs_detected; loop_leg2++) {//loop over all the legs
-            // if the distance between two moving legs is lower than "legs_distance_max"
-            // then we find a moving person
-            if (distancePoints(moving_leg_detected[loop_leg1], moving_leg_detected[loop_leg2]) < legs_distance_max) {
-                // we update the moving_persons_detected table to store the middle of the moving person
-                nb_moving_persons_detected++;
-                moving_persons_detected[nb_moving_persons_detected] = moving_leg_detected[loop_leg1];
+    for (int loop_leg1=0; loop_leg1<nb_moving_legs_detected; loop_leg1++){//loop over all the legs
+        for (int loop_leg2=loop_leg1+1; loop_leg2<nb_moving_legs_detected; loop_leg2++){//loop over all the legs
+            if(distancePoints(moving_leg_detected[loop_leg1],moving_leg_detected[loop_leg2]) < legs_distance_max){ //the distance between two moving legs is lower than "legs_distance_max"
+            //then we find a moving person
 
-                // textual display
-                ROS_INFO("moving person detected[%i]: leg[%i]+leg[%i] -> (%f, %f)", nb_moving_persons_detected, loop_leg1, loop_leg2, moving_persons_detected[nb_moving_persons_detected].x, moving_persons_detected[nb_moving_persons_detected].y);
+            // we update the moving_persons_detected table to store the middle of the moving person
+            moving_persons_detected[nb_moving_persons_detected].x = (moving_leg_detected[loop_leg1].x + moving_leg_detected[loop_leg2].x)/2;
+            moving_persons_detected[nb_moving_persons_detected].y = (moving_leg_detected[loop_leg1].y + moving_leg_detected[loop_leg2].y)/2;
+            moving_persons_detected[nb_moving_persons_detected].z = (moving_leg_detected[loop_leg1].z + moving_leg_detected[loop_leg2].z)/2;
+            // textual display
+            ROS_INFO("moving person detected[%i]: leg[%i]+leg[%i] -> (%f, %f)", nb_moving_persons_detected, loop_leg1, loop_leg2, moving_persons_detected[nb_moving_persons_detected].x, moving_persons_detected[nb_moving_persons_detected].y);
 
-                // the moving persons are green
+            // the moving persons are blue
                 display[nb_pts].x = moving_persons_detected[nb_moving_persons_detected].x;
                 display[nb_pts].y = moving_persons_detected[nb_moving_persons_detected].y;
                 display[nb_pts].z = moving_persons_detected[nb_moving_persons_detected].z;
@@ -383,15 +392,15 @@ void detect_moving_persons() {
                 //update of the goal and publish of the goal
                 goal_to_reach.x = moving_persons_detected[nb_moving_persons_detected].x;
                 goal_to_reach.y = moving_persons_detected[nb_moving_persons_detected].y;
+                nb_moving_persons_detected++;
+              }
             }
-        }
-    }
+          }
 
-    if ( nb_moving_persons_detected )
+    if(nb_moving_persons_detected>0)
         ROS_INFO("%d moving persons have been detected.\n", nb_moving_persons_detected);
 
     ROS_INFO("moving persons detected");
-
 
 }//detect_moving_persons
 

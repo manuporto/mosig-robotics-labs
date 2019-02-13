@@ -121,6 +121,11 @@ void update() {
             //Implementation of a PID controller for rotation_to_do;
             //rotation_speed = kp*error + ki * error + kp * error_derivation;
 
+            error_previous = error;
+            error = rotation_to_do - current_orientation;
+            error_integral += error;
+            error_derivation = error - error_previous;
+
             float error_derivation;//To complete
             //ROS_INFO("error_derivaion: %f", error_derivation);
 
