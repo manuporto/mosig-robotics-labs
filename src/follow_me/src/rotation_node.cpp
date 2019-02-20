@@ -11,9 +11,9 @@
 
 #define rotation_error 0.2//radians
 
-#define kp 0.5
-#define ki 0
-#define kd 0
+#define kp 0.2
+#define ki 0.001
+#define kd 0.2
 
 class rotation {
 private:
@@ -121,12 +121,11 @@ void update() {
             //Implementation of a PID controller for rotation_to_do;
             //rotation_speed = kp*error + ki * error + kp * error_derivation;
 
-            error_previous = error;
-            error = rotation_to_do - current_orientation;
+            float error_derivation;//To complete
+
             error_integral += error;
             error_derivation = error - error_previous;
 
-            float error_derivation;//To complete
             //ROS_INFO("error_derivaion: %f", error_derivation);
 
             //error_integral = ...;//To complete
@@ -134,6 +133,7 @@ void update() {
 
             //control of rotation with a PID controller
             rotation_speed = kp * error + ki * error_integral + kd * error_derivation;
+            error_previous = error;
             ROS_INFO("(rotation_node) current_orientation: %f, orientation_to_reach: %f -> rotation_speed: %f", rotation_done*180/M_PI, rotation_to_do*180/M_PI, rotation_speed*180/M_PI);
         }
         else {

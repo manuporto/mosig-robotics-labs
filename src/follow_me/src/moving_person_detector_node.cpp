@@ -14,7 +14,7 @@
 #define cluster_threshold 0.2 //threshold for clustering
 
 //used for detection of motion
-#define detection_threshold 0.2 //threshold for motion detection
+#define detection_threshold 0.5 //threshold for motion detection
 #define dynamic_threshold 75 //to decide if a cluster is static or dynamic
 
 //used for detection of moving legs
@@ -54,6 +54,7 @@ private:
     float cluster_size[1000];// to store the size of each cluster
     geometry_msgs::Point cluster_middle[1000];// to store the middle of each cluster
     int cluster_dynamic[1000];// to store the percentage of the cluster that is dynamic
+    float cluster_dynamic_float[1000];// to store the percentage of the cluster that is dynamic
     int cluster_start[1000], cluster_end[1000];
 
     //to perform detection of moving legs and to store them
@@ -183,15 +184,19 @@ void store_background() {
 }//init_background
 
 void detect_motion() {
+
+
     ROS_INFO("detecting motion");
 
     for (int loop=0; loop<nb_beams; loop++ ){//loop over all the hits
-        if((range[loop] - background[loop]) > detection_threshold)// the difference between ( the background and the current value ) is higher than "detection_threshold"
+        if(abs(range[loop] - background[loop]) > detection_threshold)// the difference between ( the background and the current value ) is higher than "detection_threshold"
              dynamic[loop] = 1;//the current hit is dynamic
         else
             dynamic[loop] = 0;//else its static
-    }
+}
     ROS_INFO("motion detected");
+
+
 }//detect_motion
 
 // CLUSTERING
@@ -240,9 +245,10 @@ void perform_clustering() {
               cluster_end[nb_cluster] = loop-1;
               //- cluster_dynamic to store the percentage of hits of the current cluster that are dynami
               if(cluster_end[nb_cluster] != cluster_start[nb_cluster]){
-                cluster_dynamic[nb_cluster] = 100*nb_dynamic/(cluster_end[nb_cluster] - cluster_start[nb_cluster]);
-              } else {
-                  cluster_dynamic[nb_cluster] = 0;
+                cluster_dynamic[nb_cluster] = 20 + 100* (nb_dynamic/(cluster_end[nb_cluster] - cluster_start[nb_cluster]+1));
+              }
+              else{
+                cluster_dynamic[nb_cluster] = 0;
               }
               // - cluster_size to store the size of the cluster ie, the distance between the first hit of the cluster and the last one
               cluster_size[nb_cluster] = distancePoints(current_scan[cluster_start[nb_cluster]],  current_scan[cluster_end[nb_cluster]]);
@@ -266,17 +272,17 @@ void perform_clustering() {
             nb_pts++;
 
             //textual display
-            ROS_INFO("cluster[%i]: [%i](%f, %f) -> [%i](%f, %f), size: %f, dynamic: %i no dynamic: %i", nb_cluster, cluster_start[nb_cluster], current_scan[cluster_start[nb_cluster]].x, current_scan[cluster_start[nb_cluster]].y, cluster_end[nb_cluster], current_scan[cluster_end[nb_cluster]].x, current_scan[cluster_end[nb_cluster]].y, cluster_size[nb_cluster], cluster_dynamic[nb_cluster], nb_dynamic);
 
-            // 2/ we start a new cluster with the current hit
+            ROS_INFO("cluster[%i]: [%i](%f, %f) -> [%i](%f, %f), size: %f, dynamic: %i", nb_cluster, cluster_start[nb_cluster], current_scan[cluster_start[nb_cluster]].x, current_scan[cluster_start[nb_cluster]].y, cluster_end[nb_cluster], current_scan[cluster_end[nb_cluster]].x, current_scan[cluster_end[nb_cluster]].y, cluster_size[nb_cluster], cluster_dynamic[nb_cluster]);
+
+            // 2/ we starta new cluster with the current hit
             nb_dynamic = 0;// to count the number of hits of the current cluster that are dynamic
             nb_cluster++;
             cluster_start[nb_cluster] = loop;
             cluster[loop] = nb_cluster;
             if ( dynamic[loop] ){
                 nb_dynamic++;
-            }
-
+              }
             //graphical display of the start of the current cluster in green
             display[nb_pts].x = current_scan[cluster_start[nb_cluster]].x;
             display[nb_pts].y = current_scan[cluster_start[nb_cluster]].y;
@@ -295,9 +301,10 @@ void perform_clustering() {
     cluster_end[nb_cluster] = nb_beams-1;
     //- cluster_dynamic to store the percentage of hits of the current cluster that are dynami
     if(cluster_end[nb_cluster] != cluster_start[nb_cluster]){
-      cluster_dynamic[nb_cluster] = 100*nb_dynamic/(cluster_end[nb_cluster] - cluster_start[nb_cluster]);
-    } else {
-        cluster_dynamic[nb_cluster] = 0;
+      cluster_dynamic[nb_cluster] = round(100*(nb_dynamic/(cluster_end[nb_cluster] - cluster_start[nb_cluster] +1)));
+    }
+    else{
+      cluster_dynamic[nb_cluster] = 0;
     }
     // - cluster_size to store the size of the cluster ie, the distance between the first hit of the cluster and the last one
     cluster_size[nb_cluster] = distancePoints(current_scan[cluster_start[nb_cluster]],  current_scan[cluster_end[nb_cluster]]);
@@ -328,8 +335,7 @@ void detect_moving_legs() {
 
     for (int loop=0; loop<nb_cluster; loop++){//loop over all the clusters
 	// ROS_INFO("moving legs detector cluster dynamic [%i], cluster_size [%f]",cluster_dynamic[loop] , cluster_size[loop]);
-        ROS_WARN("================================== CLUSTER DYNAMIC: %i", cluster_dynamic[loop]);
-        if(cluster_size[loop] >= leg_size_min && cluster_size[loop] <= leg_size_max && cluster_dynamic[loop] >= dynamic_threshold){//&& cluster_dynamic[loop] >= dynamic_threshold){//the size of the current cluster is higher than "leg_size_min" and lower than "leg_size_max" and it has "dynamic_threshold"% of its hits that are dynamic
+        if(cluster_size[loop] >= leg_size_min && cluster_size[loop] <= leg_size_max && cluster_dynamic[loop] >= dynamic_threshold){//the size of the current cluster is higher than "leg_size_min" and lower than "leg_size_max" and it has "dynamic_threshold"% of its hits that are dynamic
         //then the current cluster is a moving leg
 
             // we update the moving_leg_detected table to store the middle of the moving leg
@@ -396,6 +402,7 @@ void detect_moving_persons() {
                 //update of the goal and publish of the goal
                 goal_to_reach.x = moving_persons_detected[nb_moving_persons_detected].x;
                 goal_to_reach.y = moving_persons_detected[nb_moving_persons_detected].y;
+
                 nb_moving_persons_detected++;
               }
             }

@@ -11,10 +11,10 @@
 using namespace std;
 
 #define safety_distance 0.5
-#define translation_error 0.1
+#define translation_error 0.10
 #define kp 0.5
-#define ki 0
-#define kd 0
+#define ki 0.001
+#define kd 0.3
 
 class translation {
 private:
@@ -112,7 +112,6 @@ void update() {
     if ( init_odom && cond_translation && init_obstacle ) {
         float translation_done = distancePoints( start_position, current_position );
         float error = translation_to_do - translation_done;
-
         // the error is the minimum between the difference between /translation_to_do and /translation_done and the distance with the closest obstacle
         if ( fabs(error) > closest_obstacle.x )
             error = closest_obstacle.x;
@@ -128,13 +127,11 @@ void update() {
             //TO COMPLETE
             //Implementation of a PID controller for translation_to_do;
 
-            error_previous = error;
-            error = sqrt((start.x - current.x)^2 + (start.y - current.y)^2);
+            float error_derivation;//To complete
             error_integral += error;
             error_derivation = error - error_previous;
             //rotation_speed = kp*error + ki * error + kp * error_derivation;
 
-            float error_derivation;//To complete
             //ROS_INFO("error_derivaion: %f", error_derivation);
 
             //error_integral = ...;//To complete
@@ -143,6 +140,7 @@ void update() {
             //control of translation with a PID controller
             translation_speed = kp * error + ki * error_integral + kd * error_derivation;
             ROS_INFO("(translation_node) translation_done: %f, translation_to_do: %f -> translation_speed: %f", translation_done, translation_to_do, translation_speed);
+            error_previous = error;
         }
         else {
             ROS_INFO("(translation_node) translation_done: %f, translation_to_do: %f -> translation_speed: %f", translation_done, translation_to_do, translation_speed);
