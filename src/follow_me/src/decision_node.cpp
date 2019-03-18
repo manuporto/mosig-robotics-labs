@@ -148,6 +148,7 @@ void update() {
         msg_goal_reached = goal_to_reach;
         pub_goal_reached.publish(msg_goal_reached);
         state = 1;
+        new_goal_to_reach = false;
 
         ROS_INFO(" ");
         ROS_INFO("(decision_node) waiting for a /goal_to_reach");
