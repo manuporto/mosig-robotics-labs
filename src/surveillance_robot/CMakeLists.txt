@@ -10,6 +10,7 @@ project(surveillance_robot)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
+  geometry_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -133,6 +134,10 @@ include_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/surveillance_robot_node.cpp)
+add_executable(${PROJECT_NAME}_decision_node src/decision_node.cpp)
+add_executable(${PROJECT_NAME}_rotation_node src/rotation_node.cpp)
+add_executable(${PROJECT_NAME}_translation_node src/translation_node.cpp)
+add_executable(${PROJECT_NAME}_local_planner_node src/local_planner_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -148,7 +153,10 @@ include_directories(
 # target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
 # )
-
+target_link_libraries(${PROJECT_NAME}_rotation_node ${catkin_LIBRARIES})
+target_link_libraries(${PROJECT_NAME}_translation_node ${catkin_LIBRARIES})
+target_link_libraries(${PROJECT_NAME}_decision_node ${catkin_LIBRARIES})
+target_link_libraries(${PROJECT_NAME}_local_planner_node ${catkin_LIBRARIES})
 #############
 ## Install ##
 #############
