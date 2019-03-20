@@ -85,38 +85,40 @@ void update() {
     // we receive a new /goal_to_reach and robair is not doing a translation or a rotation
     if ( ( new_goal_to_reach ) && ( state == 1 ) ) {
 
-        ROS_INFO("(decision_node) /goal_to_reach received: (%f, %f)", goal_to_reach.x, goal_to_reach.y);
+        // ROS_INFO("(decision_node) /goal_to_reach received: (%f, %f)", goal_to_reach.x, goal_to_reach.y);
+        ROS_INFO("vector received: (%f, %f)", goal_to_reach.x, goal_to_reach.y);
+
         new_goal_to_reach = false;
 
         // we have a rotation and a translation to perform
         // we compute the /translation_to_do
-        translation_to_do = sqrt( ( goal_to_reach.x * goal_to_reach.x ) + ( goal_to_reach.y * goal_to_reach.y ) );
-
-        if ( translation_to_do ) {
-            //we compute the /rotation_to_do
-            rotation_to_do = acos( goal_to_reach.x / translation_to_do );
-
-            if ( goal_to_reach.y < 0 )
-                rotation_to_do *=-1;
-
-            display_state = false;
-            //we first perform the /rotation_to_do
-            ROS_INFO("(decision_node) /rotation_to_do: %f", rotation_to_do*180/M_PI);
-            std_msgs::Float32 msg_rotation_to_do;
-
-            msg_rotation_to_do.data = rotation_to_do;
-            pub_rotation_to_do.publish(msg_rotation_to_do);
-            state = 2;
-
-        }
-        else {
-            geometry_msgs::Point msg_goal_reached;
-            msg_goal_reached.x = 0;
-            msg_goal_reached.y = 0;
-
-            ROS_INFO("(decision_node) /goal_reached (%f, %f)", msg_goal_reached.x, msg_goal_reached.y);
-            pub_goal_reached.publish(msg_goal_reached);
-        }
+        // translation_to_do = sqrt( ( goal_to_reach.x * goal_to_reach.x ) + ( goal_to_reach.y * goal_to_reach.y ) );
+        //
+        // if ( translation_to_do ) {
+        //     //we compute the /rotation_to_do
+        //     rotation_to_do = acos( goal_to_reach.x / translation_to_do );
+        //
+        //     if ( goal_to_reach.y < 0 )
+        //         rotation_to_do *=-1;
+        //
+        //     display_state = false;
+        //     //we first perform the /rotation_to_do
+        //     ROS_INFO("(decision_node) /rotation_to_do: %f", rotation_to_do*180/M_PI);
+        //     std_msgs::Float32 msg_rotation_to_do;
+        //
+        //     msg_rotation_to_do.data = rotation_to_do;
+        //     pub_rotation_to_do.publish(msg_rotation_to_do);
+        //     state = 2;
+        //
+        // }
+        // else {
+        //     geometry_msgs::Point msg_goal_reached;
+        //     msg_goal_reached.x = 0;
+        //     msg_goal_reached.y = 0;
+        //
+        //     ROS_INFO("(decision_node) /goal_reached (%f, %f)", msg_goal_reached.x, msg_goal_reached.y);
+        //     pub_goal_reached.publish(msg_goal_reached);
+        // }
     }
 
     //we receive an ack from rotation_action_node. So, we perform the /translation_to_do
