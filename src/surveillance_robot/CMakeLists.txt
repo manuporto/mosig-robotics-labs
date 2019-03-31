@@ -138,6 +138,7 @@ add_executable(${PROJECT_NAME}_decision_node src/decision_node.cpp)
 add_executable(${PROJECT_NAME}_rotation_node src/rotation_node.cpp)
 add_executable(${PROJECT_NAME}_translation_node src/translation_node.cpp)
 add_executable(${PROJECT_NAME}_local_planner_node src/local_planner_node.cpp)
+add_executable(${PROJECT_NAME}_obstacle_detection_node src/obstacle_detection_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -157,6 +158,7 @@ target_link_libraries(${PROJECT_NAME}_rotation_node ${catkin_LIBRARIES})
 target_link_libraries(${PROJECT_NAME}_translation_node ${catkin_LIBRARIES})
 target_link_libraries(${PROJECT_NAME}_decision_node ${catkin_LIBRARIES})
 target_link_libraries(${PROJECT_NAME}_local_planner_node ${catkin_LIBRARIES})
+target_link_libraries(${PROJECT_NAME}_obstacle_detection_node ${catkin_LIBRARIES})
 #############
 ## Install ##
 #############

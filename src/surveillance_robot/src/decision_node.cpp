@@ -15,7 +15,13 @@ private:
 
     // communication with one_moving_person_detector or person_tracker
     ros::Publisher pub_goal_reached;
-    ros::Subscriber sub_goal_to_reach;
+
+
+    //comunication with local_planner
+    ros::Subscriber sub_current_position;
+    ros::Subscriber sub_final_goal_to_reach;
+
+    //TODO communication with global_planer
 
     // communication with rotation
     ros::Publisher pub_rotation_to_do;
@@ -30,15 +36,19 @@ private:
     float translation_to_do;
     float translation_done;
 
-    bool new_goal_to_reach;//to check if a new /goal_to_reach is available or not
+    bool new_final_goal_to_reach;//to check if a new /final_goal_to_reach is available or not
+    bool new_current_position;//to check if a new current position estimation is available or not
     bool new_rotation_done;//to check if a new /rotation_done is available or not
     bool new_translation_done;//to check if a new /translation_done is available or not
 
+    geometry_msgs::Pose current_position;
+    geometry_msgs::Point final_goal_to_reach;
     geometry_msgs::Point goal_to_reach;
     geometry_msgs::Point goal_reached;
 
     int state;
     bool display_state;
+    float distance_destination_threshold = 0.5; //to check if we're close enough to our final goal
 
 public:
 
@@ -46,7 +56,8 @@ decision() {
 
     // communication with moving_persons_detector or person_tracker
     pub_goal_reached = n.advertise<geometry_msgs::Point>("goal_reached", 1);
-    sub_goal_to_reach = n.subscribe("goal_to_reach", 1, &decision::goal_to_reachCallback, this);
+    sub_final_goal_to_reach = n.subscribe("final_goal_to_reach", 1, &decision::final_goal_to_reachCallback, this);
+    sub_current_position = n.subscribe("current_position", 1, &decision::current_positionCallback, this);
 
     // communication with rotation_action
     pub_rotation_to_do = n.advertise<std_msgs::Float32>("rotation_to_do", 0);
@@ -58,11 +69,12 @@ decision() {
 
     state = 1;
     display_state = false;
-    new_goal_to_reach = false;
+    new_final_goal_to_reach = false;
     new_rotation_done = false;
     new_translation_done = false;
+    new_current_position = false;
 
-    //INFINTE LOOP TO COLLECT LASER DATA AND PROCESS THEM
+    //INFINITE LOOP TO COLLECT LASER DATA AND PROCESS THEM
     ros::Rate r(10);// this node will work at 10hz
     while (ros::ok()) {
         ros::spinOnce();//each callback is called once
@@ -82,40 +94,50 @@ void update() {
         ROS_INFO("state: %i", state);
     }
 
-    // we receive a new /goal_to_reach and robair is not doing a translation or a rotation
-    if ( ( new_goal_to_reach ) && ( state == 1 ) ) {
+    // we receive a new /final_goal_to_reach and robair is not doing a translation or a rotation
+    if ( ( new_final_goal_to_reach ) && ( state == 1 ) ) {
 
-        ROS_INFO("(decision_node) /goal_to_reach received: (%f, %f)", goal_to_reach.x, goal_to_reach.y);
-        new_goal_to_reach = false;
+        ROS_INFO_STREAM("(decision_node) /final_goal_to_reach received: (%f, %f)" << final_goal_to_reach);
+        new_final_goal_to_reach = false;
+        //we have estimation of the current postition
+        if(new_current_position){//TODO
+          //inform planner
+          //get next point from planner
+          //compute translation and rotation
+          //update translation_to_do with translation_to_do function
+          //update rotation_to_do with rotation_to_do function
+          //change state
 
-        // we have a rotation and a translation to perform
-        // we compute the /translation_to_do
-        translation_to_do = sqrt( ( goal_to_reach.x * goal_to_reach.x ) + ( goal_to_reach.y * goal_to_reach.y ) );
+          // we have a rotation and a translation to perform
+          //
+          // if ( translation_to_do ) {
+          //     //we compute the /rotation_to_do
+          //     rotation_to_do = acos( final_goal_to_reach.x / translation_to_do );
+          //
+          //     if ( final_goal_to_reach.y < 0 )
+          //         rotation_to_do *=-1;
+          //
+          //     display_state = false;
+          //     //we first perform the /rotation_to_do
+          //     ROS_INFO("(decision_node) /rotation_to_do: %f", rotation_to_do*180/M_PI);
+          //     std_msgs::Float32 msg_rotation_to_do;
+          //
+          //     msg_rotation_to_do.data = rotation_to_do;
+          //     pub_rotation_to_do.publish(msg_rotation_to_do);
+          //     state = 2;
+          //
+          // }
+          // we reached goal_to_reach, ask planner to provide next point
+          // else {
 
-        if ( translation_to_do ) {
-            //we compute the /rotation_to_do
-            rotation_to_do = acos( goal_to_reach.x / translation_to_do );
-
-            if ( goal_to_reach.y < 0 )
-                rotation_to_do *=-1;
-
-            display_state = false;
-            //we first perform the /rotation_to_do
-            ROS_INFO("(decision_node) /rotation_to_do: %f", rotation_to_do*180/M_PI);
-            std_msgs::Float32 msg_rotation_to_do;
-
-            msg_rotation_to_do.data = rotation_to_do;
-            pub_rotation_to_do.publish(msg_rotation_to_do);
-            state = 2;
-
-        }
-        else {
-            geometry_msgs::Point msg_goal_reached;
-            msg_goal_reached.x = 0;
-            msg_goal_reached.y = 0;
-
-            ROS_INFO("(decision_node) /goal_reached (%f, %f)", msg_goal_reached.x, msg_goal_reached.y);
-            pub_goal_reached.publish(msg_goal_reached);
+          //change the code below
+          //     geometry_msgs::Point msg_goal_reached;
+          //     msg_goal_reached.x = 0;
+          //     msg_goal_reached.y = 0;
+          //
+          //     ROS_INFO("(decision_node) /goal_reached (%f, %f)", msg_goal_reached.x, msg_goal_reached.y);
+          //     pub_goal_reached.publish(msg_goal_reached);
+          // }
         }
     }
 
@@ -135,35 +157,83 @@ void update() {
 
     }
 
-    //we receive an ack from translation_action_node. So, we send an ack to the moving_persons_detector_node
+    //we receive an ack from translation_action_nodnew_current_positione. So, we send an ack to the moving_persons_detector_node
     if ( ( new_translation_done ) && ( state == 3 ) ) {
         ROS_INFO("(decision_node) /translation_done : %f\n", translation_done);
         new_translation_done = false;
 
         display_state = false;
-        //the translation_to_do is done so we send the goal_reached to the detector/tracker node
+        //the translation_to_do is done so we inform the planner
         geometry_msgs::Point msg_goal_reached;
         ROS_INFO("(decision_node) /goal_reached (%f, %f)", msg_goal_reached.x, msg_goal_reached.y);
 
-        msg_goal_reached = goal_to_reach;
-        pub_goal_reached.publish(msg_goal_reached);
+        //TODO
         state = 1;
 
         ROS_INFO(" ");
-        ROS_INFO("(decision_node) waiting for a /goal_to_reach");
+        ROS_INFO("(decision_node) waiting for a /final_goal_to_reach");
     }
 
+    //we reached our final destination
+    if(distancePoints(current_position.position, final_goal_to_reach) < distance_destination_threshold){
+        geometry_msgs::Point msg_final_goal_reached;
+        msg_final_goal_reached.x = 0;
+        msg_final_goal_reached.y = 0;
+
+        ROS_INFO("(decision_node) /goal_reached (%f, %f)", msg_final_goal_reached.x, msg_final_goal_reached.y);
+        pub_goal_reached.publish(msg_final_goal_reached);
+
+    }
 }// update
+
+
+// Distance between two points
+float distancePoints(geometry_msgs::Point pa, geometry_msgs::Point pb) {
+    return sqrt(pow((pa.x-pb.x),2.0) + pow((pa.y-pb.y),2.0));
+}
+
+float deg_from_quaternion(geometry_msgs::Quaternion q){
+  float degree = 0;
+  return degree;
+}
+
+float get_angle_to_do(geometry_msgs::Pose current_position, geometry_msgs::Point goal_to_reach){
+  geometry_msgs::Point current_point = current_position.position;
+  geometry_msgs::Quaternion current_orientation = current_position.orientation;
+  float angle_to_do = atan2( final_goal_to_reach.y-current_point.y, final_goal_to_reach.x-current_point.x);
+  angle_to_do+=deg_from_quaternion(current_orientation); //add current orientation
+  ROS_INFO("Computing angle to do: %f\n", angle_to_do);
+  return angle_to_do;
+}
+
+float get_translation_to_do(geometry_msgs::Pose current_position, geometry_msgs::Point goal_to_reach){
+  return distancePoints(current_position.position, goal_to_reach);
+}
 
 //CALLBACKS
 /*//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////*/
-void goal_to_reachCallback(const geometry_msgs::Point::ConstPtr& g) {
-// process the goal received from moving_persons detector
+void final_goal_to_reachCallback(const geometry_msgs::Point::ConstPtr& msg) {
+// process the goal received from local planner
 
-    new_goal_to_reach = true;
-    goal_to_reach.x = g->x;
-    goal_to_reach.y = g->y;
+    new_final_goal_to_reach = true;
+
+    final_goal_to_reach.x = msg->x;
+    final_goal_to_reach.y = msg->y;
+
+    ROS_INFO("GOAL TO  REACH: x: %f y: %f", final_goal_to_reach.x, final_goal_to_reach.y);
+
+}
+
+void current_positionCallback(const geometry_msgs::Pose::ConstPtr& msg) {
+// process current_position received from local planner
+
+    new_current_position = true;
+
+    current_position.position = msg->position;
+    current_position.orientation = msg->orientation;
+
+    ROS_INFO_STREAM("=====POSITION ESTIMATION: " << current_position);
 
 }
 
@@ -183,18 +253,11 @@ void translation_doneCallback(const std_msgs::Float32::ConstPtr& r) {
 
 }
 
-// Distance between two points
-float distancePoints(geometry_msgs::Point pa, geometry_msgs::Point pb) {
-
-    return sqrt(pow((pa.x-pb.x),2.0) + pow((pa.y-pb.y),2.0));
-
-}
-
 };
 
 int main(int argc, char **argv){
 
-    ROS_INFO("(decision_node) waiting for a /goal_to_reach");
+    ROS_INFO("(decision_node) waiting for a /final_goal_to_reach");
     ros::init(argc, argv, "decision");
 
     decision bsObject;
