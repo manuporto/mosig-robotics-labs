@@ -1,12 +1,12 @@
 #!/bin/bash
 # Source setup file
-source ./devel/setup.sh
+source ./devel/setup.bash
+#source ./devel/setup_wired_connection.sh
 echo $ROS_PACKAGE_PATH
 roscd && cd ..
+
 # Compile the project before running it
 catkin_make
-# Run roscore
-roscore&
 
 # Run RViz
 rviz&
@@ -23,3 +23,5 @@ rosrun surveillance_robot surveillance_robot_translation_node&
 rosrun surveillance_robot surveillance_robot_rotation_node&
 # rosrun surveillance_robot surveillance_robot_obstacle_detection_node&
 rosrun surveillance_robot surveillance_robot_local_planner_node&
+
+jobs -p
