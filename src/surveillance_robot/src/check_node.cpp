@@ -1,6 +1,7 @@
 #include "ros/ros.h"
 #include "geometry_msgs/Point.h"
 #include "geometry_msgs/PoseWithCovarianceStamped.h"
+#include "std_msgs/Bool.h"
 
 #define RECALCULATION_TRESHOLD 5
 
@@ -25,7 +26,7 @@ class check_node {
             sub_next_point = n.subscribe("decision_node/next_point", 1, &check_node::getNextPoint, this);
             sub_pose = n.subscribe("amcl_pose", 1, &check_node::getPosition, this);
 
-            pub_recalculate_goal = n.advertise<bool>("check_node/recalculate_goal", 1);
+            pub_recalculate_goal = n.advertise<std_msgs::Bool>("check_node/recalculate_goal", 1);
 
             ros::Rate r(10);// this node will work at 10hz
             while (ros::ok()) {
@@ -39,12 +40,18 @@ class check_node {
             if (new_next_point && new_pose) {
                 ROS_INFO("Received both a next point and a new pose.");
                 ROS_INFO("Calculating if a recalculation of the current goal is needed.");
+                std_msgs::Bool recalculation;
                 if (recalculationNeeded()) {
-                    pub_recalculate_goal.publish(true);
+                    recalculation.data = true;
+                    pub_recalculate_goal.publish(recalculation);
                     ROS_INFO("Recalculation needed.");
                 } else {
+                    recalculation.data = false;
+                    pub_recalculate_goal.publish(recalculation);
                     ROS_INFO("Recalculation not needed.");
                 }
+                new_next_point = false;
+                new_pose = false;
             }
         }
 
@@ -76,8 +83,8 @@ class check_node {
 
 int main(int argc, char **argv){
 
-    ROS_INFO("(check_node) waiting for a /amc_pose and /next_point");
-    ros::init(argc, argv, "planner");
+    ROS_INFO("(check_node) waiting for an /amc_pose and /next_point");
+    ros::init(argc, argv, "checker");
 
     check_node bsObject;
 

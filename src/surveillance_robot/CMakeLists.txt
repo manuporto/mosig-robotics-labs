@@ -134,6 +134,7 @@ include_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/surveillance_robot_node.cpp)
+add_executable(${PROJECT_NAME}_check_node src/check_node.cpp)
 add_executable(${PROJECT_NAME}_decision_node src/decision_node.cpp)
 add_executable(${PROJECT_NAME}_rotation_node src/rotation_node.cpp)
 add_executable(${PROJECT_NAME}_translation_node src/translation_node.cpp)
@@ -154,6 +155,7 @@ add_executable(${PROJECT_NAME}_obstacle_detection_node src/obstacle_detection_no
 # target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
 # )
+target_link_libraries(${PROJECT_NAME}_check_node ${catkin_LIBRARIES})
 target_link_libraries(${PROJECT_NAME}_rotation_node ${catkin_LIBRARIES})
 target_link_libraries(${PROJECT_NAME}_translation_node ${catkin_LIBRARIES})
 target_link_libraries(${PROJECT_NAME}_decision_node ${catkin_LIBRARIES})
