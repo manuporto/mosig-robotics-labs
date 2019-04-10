@@ -17,7 +17,7 @@ class check_node {
 
         bool new_next_point;
         bool new_pose;
-    
+
     public:
         check_node() {
             new_next_point = false;
@@ -61,6 +61,8 @@ class check_node {
 
         void getNextPoint(const geometry_msgs::Point incoming_next_point) {
             ROS_INFO_STREAM("Incoming next point: " << incoming_next_point);
+            ROS_INFO_STREAM("Incoming next point: " << incoming_next_point);
+
             next_point.x = incoming_next_point.x;
             next_point.y = incoming_next_point.y;
             ROS_INFO_STREAM("Saved as next_point.");

@@ -87,6 +87,7 @@ void update() {
 
         // publish
         ROS_INFO("publishing new tranlation and rotation to do to the decision node");
+        ROS_INFO_STREAM(translation_rotation);
         pub_tran_rot_to_do.publish(translation_rotation); //TODO
         new_local_goal_to_reach = false;
         new_position = false;

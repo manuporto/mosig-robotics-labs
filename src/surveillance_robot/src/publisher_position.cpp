@@ -30,13 +30,13 @@ public:
 publisher() {
 
     sub_next_local_goal = n.advertise<geometry_msgs::Point>("local_goal", 100);
-    sub_current_position = n.advertise<geometry_msgs::PoseWithCovarianceStamped>("amcl_pose", 100);
+    sub_current_position = n.advertise<geometry_msgs::PoseWithCovarianceStamped>("amcl_pose", 500);
 
     local_goal_to_reach.x = 10;
     local_goal_to_reach.y = 21;
 
     current_position.pose.pose.position.x = 0;
-    current_position.pose.pose.position.y = 0;
+    current_position.pose.pose.position.y = 1;
 
 
     current_position.pose.pose.orientation.x = 0.1;
@@ -59,6 +59,9 @@ publisher() {
 void update() {
     ROS_INFO("publishing");
     sub_next_local_goal.publish(local_goal_to_reach);
+    ROS_INFO("current pos: x: %f y: %f",
+        current_position.pose.pose.position.x,
+        current_position.pose.pose.position.y);
     sub_current_position.publish(current_position);
     ROS_INFO("done");
 
