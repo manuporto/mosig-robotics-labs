@@ -8,27 +8,31 @@
 #include "std_msgs/Float32.h"
 #include <cmath>
 #include <tf/transform_datatypes.h>
+#include "geometry_msgs/Vector3.h"
+#include "tf/transform_datatypes.h"
+#include "tf/LinearMath/Matrix3x3.h"
 
+//receives: a point from decision node where we want to move_base_simple
+//receives: a current possition from amcl_pose
+//publishes:the translataion and the rotation that needs to be performed
 class local_planner {
 private:
 
     ros::NodeHandle n;
 
-    ros::Subscriber sub_goal;
-    ros::Subscriber sub_pose;
-    ros::Publisher pub_current_position;
-    ros::Publisher pub_goal_to_reach;
+    ros::Subscriber sub_next_local_goal;
+    ros::Subscriber sub_current_position;
+    ros::Publisher pub_tran_rot_to_do;
 
     float pose_distance_threshold = 1;
 
 
-    bool new_pose; // check if a new position arrived
-    bool new_goal_to_reach; //to check if a new /goal_to_reach is available or not
-    bool new_pose_estim;
+    bool new_position; // check if a new position arrived
+    bool new_local_goal_to_reach; //to check if a new /local_goal_to_reach is available or not
 
-    geometry_msgs::Point goal_to_reach;
-    geometry_msgs::Pose current_position_estim;
-    geometry_msgs::Pose old_pose_estim;
+    geometry_msgs::Point local_goal_to_reach;
+    geometry_msgs::Pose current_position;
+    geometry_msgs::Point translation_rotation;//x = translation, y = rotation, z = 0;
 
     int state;
     bool display_state;
@@ -38,15 +42,15 @@ local_planner() {
 
     state = 1;
     display_state = false;
-    new_pose_estim = false;
-    new_goal_to_reach = false;
+    new_position = false;
+    new_local_goal_to_reach = false;
 
-    sub_pose = n.subscribe("amcl_pose", 1000, &local_planner::getPosition, this);
-    sub_goal = n.subscribe("move_base_simple/goal", 1, &local_planner::getPointGoal, this);
-    // ('move_base_simple/goal', PoseStamped, self.update_goal);
+    pub_tran_rot_to_do = n.advertise<geometry_msgs::Point>("translation_rotation", 1);
 
-    pub_goal_to_reach = n.advertise<geometry_msgs::Point>("goal_to_reach", 1);
-    pub_current_position = n.advertise<geometry_msgs::Pose>("current_postition", 1);
+
+    sub_current_position = n.subscribe("amcl_pose", 1, &local_planner::getPosition, this);
+    sub_next_local_goal = n.subscribe("local_goal", 1, &local_planner::getPointGoal, this);
+
     //INFINTE LOOP TO COLLECT POSITION DATA AND PROCESS THEM
     ros::Rate r(10);// this node will work at 10hz
     while (ros::ok()) {
@@ -67,67 +71,98 @@ void update() {
 
     }
 
-    // we receive a new /goal_to_reach and robair is not doing a translation or a rotation
-    if ( new_goal_to_reach ) {
+    // we receive both position estimation and new local_goal_to_reach
+    // we can compute the translation and the rotation
+    // and publish it to the decision node
+      // ROS_INFO("nothing new");
+
+    if ( new_local_goal_to_reach && new_position) {
         // calculation
+        ROS_INFO("calculating the translation and the rotation to do");
+        float tranlation = get_translation_to_do(current_position, local_goal_to_reach);
+        float rotation = get_angle_to_do(current_position, local_goal_to_reach);
+
+        translation_rotation.x = tranlation;
+        translation_rotation.y = rotation;
 
         // publish
-        ROS_INFO("publishing new goal to reach");
-        pub_goal_to_reach.publish(goal_to_reach);
-        new_goal_to_reach = false;
-    }
-
-    if(new_pose_estim){
-      if(distancePoints(current_position_estim.position, old_pose_estim.position) > pose_distance_threshold){
-
-        old_pose_estim = current_position_estim;
-        // publish
-        ROS_INFO("publishing new goal to reach");
-        pub_current_position.publish(current_position_estim);
-        new_pose = false;
-      }
+        ROS_INFO("publishing new tranlation and rotation to do to the decision node");
+        pub_tran_rot_to_do.publish(translation_rotation); //TODO
+        new_local_goal_to_reach = false;
+        new_position = false;
     }
 }// update
 
 //CALLBACKS
 /*//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////*/
-void getPosition(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg){
+void getPosition(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg){//receive new position estimation from AMCL
   ROS_INFO_STREAM("Estimated position: " << msg);
-  current_position_estim.position = msg->pose.pose.position;
-  current_position_estim.orientation = msg->pose.pose.orientation;
-  ROS_INFO_STREAM("Saved as current_position_estim :" << current_position_estim << "\n");
-  new_pose = true;
+  current_position.position = msg->pose.pose.position;
+  current_position.orientation = msg->pose.pose.orientation;
+  ROS_INFO_STREAM("Saved as current_position :" << current_position << "\n");
+  new_position = true;
 }
 
-void getPointGoal(const geometry_msgs::PoseStamped::ConstPtr& msg){
-    ROS_INFO_STREAM("Received final pose: " << msg);
-    goal_to_reach.x = msg->pose.position.x;
-    goal_to_reach.y = msg->pose.position.y;
-    ROS_INFO_STREAM("Saved as goal_to_reach :" << goal_to_reach);
-    new_goal_to_reach = true;
+void getPointGoal(const geometry_msgs::Point::ConstPtr& msg){//receive new local point to reach from decision node
+    ROS_INFO_STREAM("Received local goal " << msg);
+    local_goal_to_reach.x = msg->x;
+    local_goal_to_reach.y = msg->y;
+    new_local_goal_to_reach = true;
 }
 
-// Vector
-geometry_msgs::Point vectorPoints(geometry_msgs::Point pa, geometry_msgs::Point pb) {
-    geometry_msgs::Point vector;
-    vector.x = (pa.x-pb.x);
-    vector.y = (pa.y-pb.y);
-    return vector;
-}
 // Distance between two points
 float distancePoints(geometry_msgs::Point pa, geometry_msgs::Point pb) {
-
     return sqrt(pow((pa.x-pb.x),2.0) + pow((pa.y-pb.y),2.0));
+}
 
+float deg_from_quaternion(geometry_msgs::Quaternion msg){
+  ROS_INFO_STREAM("ess " << msg);
+
+    tf::Quaternion quat;
+    ROS_INFO_STREAM("quat " << quat);
+
+    tf::quaternionMsgToTF(msg, quat);
+    // the tf::Quaternion has a method to access roll pitch and yaw
+    double roll, pitch, yaw;
+    tf::Matrix3x3(quat).getRPY(roll, pitch, yaw);
+
+    // the found angles are written in a geometry_msgs::Vector3
+    geometry_msgs::Vector3 rpy;
+    rpy.x = roll;
+    rpy.y = pitch;
+    rpy.z = yaw;
+
+    ROS_INFO("Angles: roll=%f pitch=%f yaw=%f", rpy.x, rpy.y, rpy.z);
+
+
+    float degree = rpy.z;
+    ROS_INFO("Angle from quaternion: %f", degree);
+    return degree;
+}
+
+float get_angle_to_do(geometry_msgs::Pose position, geometry_msgs::Point point){
+  geometry_msgs::Point current_point = position.position;
+  geometry_msgs::Quaternion current_orientation = position.orientation;
+  float angle_to_do = atan2( point.y-current_point.y, point.x-current_point.x);
+  ROS_INFO("Rotation to do without current orientation: %f\n", angle_to_do);
+  angle_to_do+=deg_from_quaternion(current_orientation);
+  ROS_INFO("Rotation to do: %f\n", angle_to_do);
+  return angle_to_do;
+}
+
+float get_translation_to_do(geometry_msgs::Pose position, geometry_msgs::Point point){
+  float translation = distancePoints(position.position, point);
+  ROS_INFO("Tranlation to do: %f\n", translation);
+  return translation;
 }
 
 };
 
 int main(int argc, char **argv){
 
-    ROS_INFO("(planner_node) waiting for a /goal_to_reach and /current_position_estim");
-    ros::init(argc, argv, "planner");
+    ROS_INFO("(local_planner_node) waiting for a /local_goal_to_reach and /current_position");
+    ros::init(argc, argv, "local_planner");
 
     local_planner bsObject;
 
