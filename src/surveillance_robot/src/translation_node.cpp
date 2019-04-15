@@ -10,11 +10,11 @@
 
 using namespace std;
 
-#define safety_distance 0.5
-#define translation_error 0.10
-#define kp 0.5
-#define ki 0.001
-#define kd 0.3
+#define safety_distance 0.4
+#define translation_error 0.1
+#define kp 0.4
+#define ki 0.0001
+#define kd 0.2
 
 class translation {
 private:
@@ -124,7 +124,6 @@ void update() {
         cond_translation = ( fabs(error) > translation_error ) && !obstacle_detected;
         float translation_speed = 0;
         if ( cond_translation ) {
-            //TO COMPLETE
             //Implementation of a PID controller for translation_to_do;
 
             float error_derivation;//To complete

@@ -49,7 +49,10 @@ local_planner() {
 
 
     sub_current_position = n.subscribe("amcl_pose", 1, &local_planner::getPosition, this);
-    sub_next_local_goal = n.subscribe("local_goal", 1, &local_planner::getPointGoal, this);
+    // sub_next_local_goal = n.subscribe("local_goal", 1, &local_planner::getPointGoal, this);
+
+    //debugging
+    sub_next_local_goal = n.subscribe("move_base_simple/goal", 1, &local_planner::getPointGoal, this);
 
     //INFINTE LOOP TO COLLECT POSITION DATA AND PROCESS THEM
     ros::Rate r(10);// this node will work at 10hz
@@ -78,6 +81,7 @@ void update() {
 
     if ( new_local_goal_to_reach && new_position) {
         // calculation
+        ROS_INFO("New local goal to reach and new position estimation");
         ROS_INFO("calculating the translation and the rotation to do");
         float tranlation = get_translation_to_do(current_position, local_goal_to_reach);
         float rotation = get_angle_to_do(current_position, local_goal_to_reach);
@@ -98,17 +102,27 @@ void update() {
 /*//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////*/
 void getPosition(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg){//receive new position estimation from AMCL
-  ROS_INFO_STREAM("Estimated position: " << msg);
+  // ROS_INFO_STREAM("Estimated position: " << msg);
   current_position.position = msg->pose.pose.position;
   current_position.orientation = msg->pose.pose.orientation;
-  ROS_INFO_STREAM("Saved as current_position :" << current_position << "\n");
+  ROS_INFO("Received new position estimation");
+
+  // ROS_INFO_STREAM("Received new position estimation:" << current_position << "\n");
   new_position = true;
 }
 
-void getPointGoal(const geometry_msgs::Point::ConstPtr& msg){//receive new local point to reach from decision node
+// void getPointGoal(const geometry_msgs::Point::ConstPtr& msg){//receive new local point to reach from decision node
+//     ROS_INFO_STREAM("Received local goal " << msg);
+//     local_goal_to_reach.x = msg->x;
+//     local_goal_to_reach.y = msg->y;
+//     new_local_goal_to_reach = true;
+// }
+
+//debigging:
+void getPointGoal(const geometry_msgs::PoseStamped::ConstPtr& msg){//receive new local point to reach from decision node
     ROS_INFO_STREAM("Received local goal " << msg);
-    local_goal_to_reach.x = msg->x;
-    local_goal_to_reach.y = msg->y;
+    local_goal_to_reach.x = msg->pose.position.x;
+    local_goal_to_reach.y = msg->pose.position.y;
     new_local_goal_to_reach = true;
 }
 
@@ -118,11 +132,7 @@ float distancePoints(geometry_msgs::Point pa, geometry_msgs::Point pb) {
 }
 
 float deg_from_quaternion(geometry_msgs::Quaternion msg){
-  ROS_INFO_STREAM("ess " << msg);
-
     tf::Quaternion quat;
-    ROS_INFO_STREAM("quat " << quat);
-
     tf::quaternionMsgToTF(msg, quat);
     // the tf::Quaternion has a method to access roll pitch and yaw
     double roll, pitch, yaw;
@@ -134,11 +144,11 @@ float deg_from_quaternion(geometry_msgs::Quaternion msg){
     rpy.y = pitch;
     rpy.z = yaw;
 
-    ROS_INFO("Angles: roll=%f pitch=%f yaw=%f", rpy.x, rpy.y, rpy.z);
+    // ROS_INFO("Angles: roll=%f pitch=%f yaw=%f", rpy.x, rpy.y, rpy.z);
 
 
     float degree = rpy.z;
-    ROS_INFO("Angle from quaternion: %f", degree);
+    ROS_INFO("Angle from quaternion: %f", degree*180/M_PI);
     return degree;
 }
 
@@ -146,15 +156,16 @@ float get_angle_to_do(geometry_msgs::Pose position, geometry_msgs::Point point){
   geometry_msgs::Point current_point = position.position;
   geometry_msgs::Quaternion current_orientation = position.orientation;
   float angle_to_do = atan2( point.y-current_point.y, point.x-current_point.x);
-  ROS_INFO("Rotation to do without current orientation: %f\n", angle_to_do);
-  angle_to_do+=deg_from_quaternion(current_orientation);
-  ROS_INFO("Rotation to do: %f\n", angle_to_do);
+  ROS_INFO("Rotation to do without current orientation: %f\n", angle_to_do*180/M_PI);
+  deg_from_quaternion(current_orientation);
+  angle_to_do-=deg_from_quaternion(current_orientation);
+  ROS_INFO("Rotation to do: %f", angle_to_do*180/M_PI);
   return angle_to_do;
 }
 
 float get_translation_to_do(geometry_msgs::Pose position, geometry_msgs::Point point){
   float translation = distancePoints(position.position, point);
-  ROS_INFO("Tranlation to do: %f\n", translation);
+  ROS_INFO("Translation to do: %f", translation);
   return translation;
 }
 

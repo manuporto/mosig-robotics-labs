@@ -30,10 +30,10 @@ public:
 publisher() {
 
     sub_next_local_goal = n.advertise<geometry_msgs::Point>("local_goal", 100);
-    sub_current_position = n.advertise<geometry_msgs::PoseWithCovarianceStamped>("amcl_pose", 500);
+    // sub_current_position = n.advertise<geometry_msgs::PoseWithCovarianceStamped>("amcl_pose", 500);
 
-    local_goal_to_reach.x = 10;
-    local_goal_to_reach.y = 21;
+    local_goal_to_reach.x = 16.45;
+    local_goal_to_reach.y = -18.0;
 
     current_position.pose.pose.position.x = 0;
     current_position.pose.pose.position.y = 1;
@@ -46,7 +46,7 @@ publisher() {
     //INFINTE LOOP TO COLLECT POSITION DATA AND PROCESS THEM
     ros::Rate rate(1);// this node will work at 10hz
     while (ros::ok()) {
-        // ros::spinOnce();//each callback is called once
+        ros::spinOnce();//each callback is called once
         update();
         rate.sleep();//we wait if the processing (ie, callback+update) has taken less than 0.1s (ie, 10 hz)
     }
@@ -59,10 +59,10 @@ publisher() {
 void update() {
     ROS_INFO("publishing");
     sub_next_local_goal.publish(local_goal_to_reach);
-    ROS_INFO("current pos: x: %f y: %f",
-        current_position.pose.pose.position.x,
-        current_position.pose.pose.position.y);
-    sub_current_position.publish(current_position);
+    // ROS_INFO("current pos: x: %f y: %f",
+    //     current_position.pose.pose.position.x,
+    //     current_position.pose.pose.position.y);
+    // sub_current_position.publish(current_position);
     ROS_INFO("done");
 
 }

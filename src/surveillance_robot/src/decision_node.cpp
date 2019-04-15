@@ -61,7 +61,7 @@ decision() {
     // communication with moving_persons_detector or person_tracker
     pub_goal_reached = n.advertise<geometry_msgs::Point>("goal_reached", 1);
     sub_final_goal_to_reach = n.subscribe("final_goal_to_reach", 1, &decision::final_goal_to_reachCallback, this);
-    sub_current_position = n.subscribe("current_position", 1, &decision::current_positionCallback, this);
+    // sub_current_position = n.subscribe("current_position", 1, &decision::current_positionCallback, this);
     sub_tran_rot_to_do = n.subscribe("translation_rotation", 1, &decision::translation_rotation, this);
     // communication with rotation_action
     pub_rotation_to_do = n.advertise<std_msgs::Float32>("rotation_to_do", 0);
@@ -98,34 +98,34 @@ void update() {
         ROS_INFO("state: %i", state);
     }
 
-    // we receive a new /final_goal_to_reach and robair is not doing a translation or a rotation
+    // we receive a new translation and rotation and robair is not doing a translation or a rotation
     if (new_rotation && new_translation && ( state == 1 ) ) {
 
           // we have a rotation and a translation to perform
 
-          if ( rotation_to_do ) {
+          if ( rotation_to_do && state == 1) {
               display_state = false;
               //we first perform the /rotation_to_do
-              ROS_INFO("(decision_node) /rotation_to_do: %f", rotation_to_do);
+              ROS_INFO("(decision_node) /rotation_to_do: %f", rotation_to_do*180/M_PI);
               std_msgs::Float32 msg_rotation_to_do;
 
               msg_rotation_to_do.data = rotation_to_do;
               pub_rotation_to_do.publish(msg_rotation_to_do);
               state = 2;
               new_rotation = false;
-
           }
 
-          if ( translation_to_do ) {
+          //if there's no ratation, do translation
+          if ( translation_to_do && state == 1) {
               display_state = false;
-              //we first perform the /rotation_to_do
               ROS_INFO("(decision_node) /tranlation: %f", translation_to_do);
               std_msgs::Float32 msg_translation_to_do;
 
               msg_translation_to_do.data = translation_to_do;
               pub_translation_to_do.publish(msg_translation_to_do);
-              state = 2;
+              state = 3;
               new_translation = false;
+              ROS_INFO("======================================================");
           }
     }
 
@@ -152,26 +152,13 @@ void update() {
 
         display_state = false;
         //the translation_to_do is done so we inform the planner
-        geometry_msgs::Point msg_goal_reached;
-        ROS_INFO("(decision_node) /goal_reached (%f, %f)", msg_goal_reached.x, msg_goal_reached.y);
-
-        //TODO
+        // geometry_msgs::Point msg_goal_reached;
+        // ROS_INFO("(decision_node) /goal_reached (%f, %f)", msg_goal_reached.x, msg_goal_reached.y);
         state = 1;
 
-        ROS_INFO(" ");
-        ROS_INFO("(decision_node) waiting for a /final_goal_to_reach");
+        ROS_INFO("======================================================");
+        ROS_INFO("(decision_node) waiting for new info from local planner");
     }
-
-    // //we reached our final destination
-    // if(distancePoints(current_position.position, final_goal_to_reach) < distance_destination_threshold){
-    //     geometry_msgs::Point msg_final_goal_reached;
-    //     msg_final_goal_reached.x = 0;
-    //     msg_final_goal_reached.y = 0;
-    //
-    //     ROS_INFO("(decision_node) /goal_reached (%f, %f)", msg_final_goal_reached.x, msg_final_goal_reached.y);
-    //     pub_goal_reached.publish(msg_final_goal_reached);
-    //
-    // }
 }// update
 
 
@@ -183,7 +170,7 @@ void update() {
 void translation_rotation(const geometry_msgs::Point::ConstPtr& msg) {
 // process the goal received from local planner
 
-    ROS_INFO_STREAM(msg->x << " " << msg->y);
+    // ROS_INFO_STREAM(msg->x << " " << msg->y);
     new_translation = true;
     new_rotation = true;
 
@@ -205,17 +192,17 @@ void final_goal_to_reachCallback(const geometry_msgs::Point::ConstPtr& msg) {
 
 }
 
-void current_positionCallback(const geometry_msgs::Pose::ConstPtr& msg) {
-// process current_position received from local planner
-
-    new_current_position = true;
-
-    current_position.position = msg->position;
-    current_position.orientation = msg->orientation;
-
-    ROS_INFO_STREAM("=====POSITION ESTIMATION: " << current_position);
-
-}
+// void current_positionCallback(const geometry_msgs::Pose::ConstPtr& msg) {
+// // process current_position received from local planner
+//
+//     new_current_position = true;
+//
+//     current_position.position = msg->position;
+//     current_position.orientation = msg->orientation;
+//
+//     ROS_INFO_STREAM("=====POSITION ESTIMATION: " << current_position);
+//
+// }
 
 void rotation_doneCallback(const std_msgs::Float32::ConstPtr& a) {
 // process the angle received from the rotation node
@@ -227,7 +214,6 @@ void rotation_doneCallback(const std_msgs::Float32::ConstPtr& a) {
 
 void translation_doneCallback(const std_msgs::Float32::ConstPtr& r) {
 // process the range received from the translation node
-
     new_translation_done = true;
     translation_done = r->data;
 
@@ -237,7 +223,7 @@ void translation_doneCallback(const std_msgs::Float32::ConstPtr& r) {
 
 int main(int argc, char **argv){
 
-    ROS_INFO("(decision_node) waiting for a /final_goal_to_reach");
+    ROS_INFO("(decision_node)");
     ros::init(argc, argv, "decision");
 
     decision bsObject;

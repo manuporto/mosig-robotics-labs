@@ -19,7 +19,7 @@
 #include "message_filters/subscriber.h"
 #include "tf/message_filter.h"
 
-float robair_size = 0.75;//0.2 for small robair
+float robair_size = 0.3;//0.2 for small robair
 
 using namespace std;
 
