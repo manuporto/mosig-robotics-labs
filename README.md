@@ -12,62 +12,69 @@ Laboratories of the course of Robotics and IoT from MoSIG
 
 #### Topics:
 decision node:
+==========
 + subscribes:
-++ move_base_simple/goal
-++ global_planer/planned_path
-++ local_planner/translation_rotation
-++ rotation_node/rotation_done
-++ translation_node/translation_done
-++ check_node/recalculate_goal
+  + move_base_simple/goal
+  + global_planer/planned_path
+  + local_planner/translation_rotation
+  + rotation_node/rotation_done
+  + translation_node/translation_done
+  + check_node/recalculate_goal
 
 + publishes
-++ global_planer/global_goal
-++ local_planner/local_goal
-++ rotation_node/rotation_to_do
-++ translation_node/translation_to_do
-++ check_node/point
+  + global_planer/global_goal
+  + local_planner/local_goal
+  + rotation_node/rotation_to_do
+  + translation_node/translation_to_do
+  + check_node/point
 
 check node:
+==========
 + subscribes:
-++ check_node/point
-++ amcl_pose
+  + check_node/point
+  + amcl_pose
 
 + publishes
-++ check_node/recalculate_goal
+  + check_node/recalculate_goal
 
 local_planner node:
+==========
 + subscribes:
-++ local_planner/local_goal
+  + local_planner/local_goal
 
 + publishes
-++ local_planner/translation_rotation
-++ amcl_pose
+  + local_planner/translation_rotation
+  + amcl_pose
 
 global_planer goal:
+==========
 + subscribes:
-++ global_planner/global_goal
+  + global_planner/global_goal
 
 + publishes
-++ global_planer/planned_path
+  + global_planer/planned_path
 
 rotation_node:
+==========
 + subscribes:
-++ rotation_node/rotation_to_do
+  + rotation_node/rotation_to_do
 
 + publishes
-++ rotation_node/rotation_done
+  + rotation_node/rotation_done
 
 translation_node:
+==========
 + subscribes:
-++ translation_node/translation_to_do
+  + translation_node/translation_to_do
 
 + publishes
-++ translation_node/translation_done
+  + translation_node/translation_done
 
 obstacle_detection_node:
+==========
 + subscribes:
-++ scan
+  + scan
 
 + publishes
-++ obstacle_detection_node/closest_obstacle
-++ obstacle_detection_node/closest_obstacle_marker
+  + obstacle_detection_node/closest_obstacle
+  + obstacle_detection_node/closest_obstacle_marker
