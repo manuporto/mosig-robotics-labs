@@ -72,11 +72,11 @@ public:
     float d24 = distancePoints(p2, p4);
 
     if (current_position_estim.position.y < p3.y &&
-            current_position_estim.position.y > p2 && goal_to_reach.x < p4 &&
-            goal_to_reach.x > p2 ||
-            goal_to_reach.y < p3.y && goal_to_reach.y > p2 &&
-            current_position_estim.x < p4 &&
-            current_position_estim.x > p2) { // FIXME
+            current_position_estim.position.y > p2.y && goal_to_reach.x < p4.x &&
+            goal_to_reach.x > p2.x ||
+            goal_to_reach.y < p3.y && goal_to_reach.y > p2.y &&
+            current_position_estim.x < p4.x &&
+            current_position_estim.x > p2.x) { // FIXME
       float d3c = distancePoints(p3, current_position_estim.position);
       float d2c = distancePoints(p2, current_position_estim.position);
       float d2g = distancePoints(p2, goal_to_reach);
@@ -89,11 +89,11 @@ public:
     }
 
     if (current_position_estim.position.y < p2.y &&
-            current_position_estim.position.y > p1 && goal_to_reach.x < p4 &&
-            goal_to_reach.x > p2 ||
-            goal_to_reach.y < p2.y && goal_to_reach.y > p1 &&
-            current_position_estim.x < p4 &&
-            current_position_estim.x > p2) { // FIXME
+            current_position_estim.position.y > p1.y && goal_to_reach.x < p4.x &&
+            goal_to_reach.x > p2.x ||
+            goal_to_reach.y < p2.y && goal_to_reach.y > p1.y &&
+            current_position_estim.positionx < p4.x &&
+            current_position_estim.position.x > p2.x) { // FIXME
       float d1c = distancePoints(p1, current_position_estim.position);
       float d2c = distancePoints(p2, current_position_estim.position);
       float d2g = distancePoints(p2, goal_to_reach);
