@@ -1,3 +1,4 @@
+#include "geometry_msgs/PoseArray.h"
 #include "geometry_msgs/Point.h"
 #include "geometry_msgs/PoseWithCovarianceStamped.h"
 #include "geometry_msgs/Quaternion.h"
@@ -12,7 +13,7 @@
 #include <tf/transform_datatypes.h>
 
 // Number of vertices in the graph
-#define V 20
+#define V 21
 
 class global_planner {
 private:
@@ -286,6 +287,18 @@ public:
 
     // print the constructed distance array
     printPath(path, goal);  
+  }
+
+  geometry_msgs::Pose get_nearest_node(const geometry_msgs::PoseArray::ConstPtr &nodes, const geometry_msgs::Pose::ConstPtr &current_node) {
+    float min_distance = std::numeric_limits<float>::max();
+    geometry_msgs::Pose nearest_node;
+    for (geometry_msgs::Pose node : nodes->poses) {
+      if (distancePoints(node.position, current_node->position) < min_distance) {
+        nearest_node.position.x = node.position.x;
+        nearest_node.position.y = node.position.y;
+      }
+    }
+    return nearest_node;
   }
 
   // Distance between two points
