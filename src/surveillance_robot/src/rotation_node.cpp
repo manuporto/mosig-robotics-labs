@@ -60,8 +60,8 @@ rotation() {
     display_odom = false;
 
     // communication with decision
-    pub_rotation_done = n.advertise<std_msgs::Float32>("rotation_done", 1);
-    sub_rotation_to_do = n.subscribe("rotation_to_do", 1, &rotation::rotation_to_doCallback, this);//this is the rotation that has to be performed
+    pub_rotation_done = n.advertise<std_msgs::Float32>("rotation_node/rotation_done", 1);
+    sub_rotation_to_do = n.subscribe("rotation_node/rotation_to_do", 1, &rotation::rotation_to_doCallback, this);//this is the rotation that has to be performed
 
     error_integral = 0;
     error_previous = 0;

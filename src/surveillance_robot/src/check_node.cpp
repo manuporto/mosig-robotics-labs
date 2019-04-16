@@ -23,7 +23,7 @@ class check_node {
             new_next_point = false;
             new_pose = false;
 
-            sub_next_point = n.subscribe("decision_node/next_point", 1, &check_node::getNextPoint, this);
+            sub_next_point = n.subscribe("check_node/point", 1, &check_node::getNextPoint, this);
             sub_pose = n.subscribe("amcl_pose", 1, &check_node::getPosition, this);
 
             pub_recalculate_goal = n.advertise<std_msgs::Bool>("check_node/recalculate_goal", 1);

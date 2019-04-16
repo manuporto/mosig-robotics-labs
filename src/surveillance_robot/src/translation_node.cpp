@@ -64,11 +64,11 @@ translation() {
     cond_translation = false;
 
     // communication with decision
-    pub_translation_done = n.advertise<std_msgs::Float32>("translation_done", 1);
-    sub_translation_to_do = n.subscribe("translation_to_do", 1, &translation::translation_to_doCallback, this);//this is the translation that has to be performed
+    pub_translation_done = n.advertise<std_msgs::Float32>("translation_node/translation_done", 1);
+    sub_translation_to_do = n.subscribe("translation_node/translation_to_do", 1, &translation::translation_to_doCallback, this);//this is the translation that has to be performed
 
     // communication with obstacle_detection
-    sub_obstacle_detection = n.subscribe("closest_obstacle", 1, &translation::closest_obstacleCallback, this);
+    sub_obstacle_detection = n.subscribe("obstacle_detection_node/closest_obstacle", 1, &translation::closest_obstacleCallback, this);
 
     error_integral = 0;
     error_previous = 0;

@@ -60,8 +60,8 @@ obstacle_detection() {
     sub_scan = n.subscribe("scan", 1, &obstacle_detection::scanCallback, this);
 
     // communication with translation_action
-    pub_closest_obstacle = n.advertise<geometry_msgs::Point>("closest_obstacle", 1);
-    pub_closest_obstacle_marker = n.advertise<visualization_msgs::Marker>("closest_obstacle_marker", 1); // Preparing a topic to publish our results. This will be used by the visualization tool rviz
+    pub_closest_obstacle = n.advertise<geometry_msgs::Point>("obstacle_detection_node/closest_obstacle", 1);
+    pub_closest_obstacle_marker = n.advertise<visualization_msgs::Marker>("obstacle_detection_node/closest_obstacle_marker", 1); // Preparing a topic to publish our results. This will be used by the visualization tool rviz
     init_laser = false;
 
     //INFINTE LOOP TO COLLECT LASER DATA AND PROCESS THEM

@@ -45,14 +45,14 @@ local_planner() {
     new_position = false;
     new_local_goal_to_reach = false;
 
-    pub_tran_rot_to_do = n.advertise<geometry_msgs::Point>("translation_rotation", 1);
+    pub_tran_rot_to_do = n.advertise<geometry_msgs::Point>("local_planner/translation_rotation", 1);
 
 
     sub_current_position = n.subscribe("amcl_pose", 1, &local_planner::getPosition, this);
-    // sub_next_local_goal = n.subscribe("local_goal", 1, &local_planner::getPointGoal, this);
+    sub_next_local_goal = n.subscribe("local_planner/local_goal", 1, &local_planner::getPointGoal, this);
 
     //debugging
-    sub_next_local_goal = n.subscribe("move_base_simple/goal", 1, &local_planner::getPointGoal, this);
+    // sub_next_local_goal = n.subscribe("move_base_simple/goal", 1, &local_planner::getPointGoal, this);
 
     //INFINTE LOOP TO COLLECT POSITION DATA AND PROCESS THEM
     ros::Rate r(10);// this node will work at 10hz
@@ -111,20 +111,20 @@ void getPosition(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg){
   new_position = true;
 }
 
-// void getPointGoal(const geometry_msgs::Point::ConstPtr& msg){//receive new local point to reach from decision node
-//     ROS_INFO_STREAM("Received local goal " << msg);
-//     local_goal_to_reach.x = msg->x;
-//     local_goal_to_reach.y = msg->y;
-//     new_local_goal_to_reach = true;
-// }
-
-//debigging:
-void getPointGoal(const geometry_msgs::PoseStamped::ConstPtr& msg){//receive new local point to reach from decision node
+void getPointGoal(const geometry_msgs::Point::ConstPtr& msg){//receive new local point to reach from decision node
     ROS_INFO_STREAM("Received local goal " << msg);
-    local_goal_to_reach.x = msg->pose.position.x;
-    local_goal_to_reach.y = msg->pose.position.y;
+    local_goal_to_reach.x = msg->x;
+    local_goal_to_reach.y = msg->y;
     new_local_goal_to_reach = true;
 }
+
+//debugging:
+// void getPointGoal(const geometry_msgs::PoseStamped::ConstPtr& msg){//receive new local point to reach from decision node
+//     ROS_INFO_STREAM("Received local goal " << msg);
+//     local_goal_to_reach.x = msg->pose.position.x;
+//     local_goal_to_reach.y = msg->pose.position.y;
+//     new_local_goal_to_reach = true;
+// }
 
 // Distance between two points
 float distancePoints(geometry_msgs::Point pa, geometry_msgs::Point pb) {
