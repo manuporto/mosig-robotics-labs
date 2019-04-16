@@ -22,14 +22,14 @@ private:
   ros::Subscriber sub_goal;
   ros::Subscriber sub_pose;
   ros::Publisher pub_current_position;
-  ros::Publisher pub_goal_to_reach;
+  ros::Publisher pub_path_to_go;
 
   bool new_pose;          // check if a new position arrived
   bool new_goal_to_reach; // to check if a new /goal_to_reach is available or
                           // not
 
   geometry_msgs::Point goal_to_reach;
-  geometry_msgs::Pose current_position_estim;
+  geometry_msgs::Pose current_position;
 
   geometry_msgs::Point p1;
   geometry_msgs::Point p2;
@@ -53,16 +53,16 @@ private:
   geometry_msgs::Point p20;
   geometry_msgs::Point p21;
 
-  geometry_msgs::Point pointArray[V] = {p1,  p2,  p3,  p4,  p5,  p6,  p7,
+  geometry_msgs::Pose pointArray[V] = {p1,  p2,  p3,  p4,  p5,  p6,  p7,
                                         p8,  p9,  p10, p11, p12, p13, p14,
                                         p15, p16, p17, p18, p19, p20, p21};
-  geometry_msgs::Point finalPathPoint[V];
+  geometry_msgs::Pose finalPathPoint[V];
 
   int state;
   bool display_state;
 
-  int src;
-  int goal;
+  int srcPoint;
+  int goalPoint;
 
 public:
   global_planner() {
@@ -135,8 +135,19 @@ public:
     p21.x = 26.651;
     p21.y = -4.985;
 
-    src = 1;
-    goal = 1;
+    geometry_msgs::Pose source = get_nearest_node(pointArray,current_position);
+    geometry_msgs::Pose goal = get_nearest_node(pointArray,goal_to_reach);
+    
+    int searchArray(geometry_msgs::Pose sPoint){
+      for(int i=0; i<V; i++)
+      {
+        if (pointArray[i] == sPoint)
+          return i;
+      }
+    }
+    srcPoint = searchArray(source);
+    goalPoint = searchArray(goal);
+
     // INFINTE LOOP TO COLLECT POSITION DATA AND PROCESS THEM
     ros::Rate r(10); // this node will work at 10hz
     while (ros::ok()) {
@@ -170,13 +181,16 @@ void update() {
     ROS_INFO("state: %i", state);
   }
 
+    sub_goal = n.subscribe("global_planner/global_goal", 1, &global_planner::getPointGoal, this);
+    pub_path_to_go = n.advertise<geometry_msgs::Point>("global_planer/planned_path", 1);
+
   // we receive a new /goal_to_reach and robair is not doing a translation or
   // a rotation
   if (new_goal_to_reach) {
     // calculation
     // publish
-    ROS_INFO("publishing new goal to reach");
-    pub_goal_to_reach.publish(goal_to_reach);
+    ROS_INFO("publishing new path to go");
+    pub_path_to_go.publish(finalPathPoint);
     new_goal_to_reach = false;
   }
 
@@ -199,9 +213,11 @@ int minDistance(int dist[], bool sptSet[]) {
   return min_index;
 }
 
-void getFinalPathPoint(int arr[], int l) {
-  for (int i = 0; i < l; i++) {
-    finalPathPoint[i] = pointArray[arr[i]];
+void getFinalPathPoint(int arr[]) {
+  int j = 0;
+  for (int i = 0; i < V; i++) {
+    j = arr[i];
+    finalPathPoint[i] = pointArray[j];
   }
 }
 
@@ -219,8 +235,7 @@ void printPath(int path[], int j) {
   for (int i = 0; i < V; i++) {
     finalpath[i] = j;
   }
-  int lenght = V; // FIXME
-  getFinalPathPoint(finalpath, lenght);
+  getFinalPathPoint(finalpath);
 }
 
 // A utility function to print
@@ -314,9 +329,9 @@ float distancePoints(geometry_msgs::Point pa, geometry_msgs::Point pb) {
 void getPosition(
     const geometry_msgs::PoseWithCovarianceStamped::ConstPtr &msg) {
   ROS_INFO_STREAM("Estimated position: " << msg);
-  current_position_estim.position = msg->pose.pose.position;
-  current_position_estim.orientation = msg->pose.pose.orientation;
-  ROS_INFO_STREAM("Saved as current_position_estim :" << current_position_estim
+  current_position.position = msg->pose.pose.position;
+  current_position.orientation = msg->pose.pose.orientation;
+  ROS_INFO_STREAM("Saved as current_position :" << current_position
                                                       << "\n");
   new_pose = true;
 }
@@ -332,7 +347,7 @@ void getPointGoal(const geometry_msgs::PoseStamped::ConstPtr &msg) {
 
 int main(int argc, char **argv) {
   ROS_INFO("(planner_node) waiting for a /goal_to_reach and "
-           "/current_position_estim");
+           "/current_position");
   ros::init(argc, argv, "planner");
 
   global_planner bsObject;
