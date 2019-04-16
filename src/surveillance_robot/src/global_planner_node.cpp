@@ -1,3 +1,4 @@
+#include "geometry_msgs/PoseArray.h"
 #include "geometry_msgs/Point.h"
 #include "geometry_msgs/PoseWithCovarianceStamped.h"
 #include "geometry_msgs/Quaternion.h"
@@ -75,8 +76,8 @@ public:
             current_position_estim.position.y > p2.y && goal_to_reach.x < p4.x &&
             goal_to_reach.x > p2.x ||
             goal_to_reach.y < p3.y && goal_to_reach.y > p2.y &&
-            current_position_estim.x < p4.x &&
-            current_position_estim.x > p2.x) { // FIXME
+            current_position_estim.position.x < p4.x &&
+            current_position_estim.position.x > p2.x) {
       float d3c = distancePoints(p3, current_position_estim.position);
       float d2c = distancePoints(p2, current_position_estim.position);
       float d2g = distancePoints(p2, goal_to_reach);
@@ -85,15 +86,15 @@ public:
       float graph[6][6] = {{0, d12, 0, 0, 0, 0},   {d12, 0, 0, 0, d2c, d2g},
                            {0, 0, 0, 0, d3c, 0},   {0, 0, 0, 0, 0, d4g},
                            {0, d2c, d3c, 0, 0, 0}, {0, d2g, 0, d4g, 0, 0}};
-      dijkstra(graph, current_position_estim);
+      // dijkstra(graph, current_position_estim);
     }
 
     if (current_position_estim.position.y < p2.y &&
             current_position_estim.position.y > p1.y && goal_to_reach.x < p4.x &&
             goal_to_reach.x > p2.x ||
             goal_to_reach.y < p2.y && goal_to_reach.y > p1.y &&
-            current_position_estim.positionx < p4.x &&
-            current_position_estim.position.x > p2.x) { // FIXME
+            current_position_estim.position.x < p4.x &&
+            current_position_estim.position.x > p2.x) {
       float d1c = distancePoints(p1, current_position_estim.position);
       float d2c = distancePoints(p2, current_position_estim.position);
       float d2g = distancePoints(p2, goal_to_reach);
@@ -102,7 +103,7 @@ public:
       float graph[6][6] = {{0, 0, 0, 0, d1c, 0},   {0, 0, d23, 0, d2c, d2g},
                            {0, d23, 0, 0, 0, 0},   {0, 0, 0, 0, 0, d4g},
                            {d1c, d2c, 0, 0, 0, 0}, {0, d2g, 0, d4g, 0, 0}};
-      dijkstra(graph, current_position_estim);
+      // dijkstra(graph, current_position_estim);
     }
   }
 
@@ -227,6 +228,18 @@ public:
 
     // print the constructed distance array
     // printSolution(dist, V);
+  }
+
+  geometry_msgs::Pose get_nearest_node(const geometry_msgs::PoseArray::ConstPtr &nodes, const geometry_msgs::Pose::ConstPtr &current_node) {
+    float min_distance = std::numeric_limits<float>::max();
+    geometry_msgs::Pose nearest_node;
+    for (geometry_msgs::Pose node : nodes->poses) {
+      if (distancePoints(node.position, current_node->position) < min_distance) {
+        nearest_node.position.x = node.position.x;
+        nearest_node.position.y = node.position.y;
+      }
+    }
+    return nearest_node;
   }
 
   // Distance between two points
