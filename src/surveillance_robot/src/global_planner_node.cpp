@@ -156,8 +156,18 @@ public:
   }
 
   void estimate_graph_position() {
-    for (int i = 0; i < V; i++)
-      for (int j = 0; j < V; j++) {
+    for (int i = 0; i < 14; i++)
+      for (int j = 0; j < 14; j++) {
+        if (abs(i - j) == 1)
+          graph[i][j] = 1;
+        else
+          graph[i][j] = 0;
+      }
+      graph[14][15] = 0;
+      graph[15][14] = 0;
+
+    for (int i = 15; i < 20; i++)
+      for (int j = 15; j < 20; j++) {
         if (abs(i - j) == 1)
           graph[i][j] = 1;
         else
