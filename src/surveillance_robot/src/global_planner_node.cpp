@@ -2,21 +2,20 @@
 #include "geometry_msgs/PoseArray.h"
 #include "geometry_msgs/PoseWithCovarianceStamped.h"
 #include "geometry_msgs/Quaternion.h"
+#include "json.hpp"
+#include "map_file_parser.hpp"
 #include "nav_msgs/Odometry.h"
 #include "ros/ros.h"
 #include "std_msgs/Float32.h"
 #include "std_msgs/String.h"
-#include "json.hpp"
 #include <cmath>
 #include <geometry_msgs/Twist.h>
 #include <limits.h>
 #include <stdio.h>
 #include <tf/transform_datatypes.h>
-#include "map_file_parser.hpp"
 
 // Number of vertices in the graph
 #define V 4
-
 
 class global_planner {
 private:
@@ -50,17 +49,31 @@ public:
     // Communication with decision node
     sub_goal = n.subscribe("move_base_simple/goal", 1,
                            &global_planner::final_goal_to_reachCallback, this);
-    sub_initial_position = n.subscribe("/initialpose", 1,
-                           &global_planner::getPosition, this);
+    sub_initial_position =
+        n.subscribe("/initialpose", 1, &global_planner::getPosition, this);
     pub_path_to_go =
         n.advertise<geometry_msgs::PoseArray>("global_planer/planned_path", 1);
 
     new_initial_position = false;
     new_goal_to_reach = false;
 
-    MapFileParser mparser("../res/corridor/corridor_graph.json");
-
-    //estimate_graph_position();
+    MapFileParser mparser(
+        "src/surveillance_robot/res/corridor/corridor_graph.json");
+    ROS_INFO_STREAM("Number of vertices: " << mparser.getNumberOfVertices());
+    std::vector<std::pair<float, float>> points = mparser.getPoints();
+    for (int i = 0; i < points.size(); i++) {
+      ROS_INFO_STREAM("x: " << points[i].first << " y: " << points[i].second);
+      pointArray[i].position.x = points[i].first;
+      pointArray[i].position.y = points[i].second;
+    }
+    std::vector<std::vector<int>> adj = mparser.getAdjacencyMatrix();
+    for (int i = 0; i < adj.size(); i++) {
+      for (int j = 0; j < adj[i].size(); j++) {
+        ROS_INFO_STREAM("Graph: " << adj[i][j]);
+        graph[i][j] = adj[i][j];
+      }
+    }
+    // estimate_graph_position();
 
     // INFINTE LOOP TO COLLECT POSITION DATA AND PROCESS THEM
     ros::Rate r(10); // this node will work at 10hz
@@ -80,8 +93,8 @@ public:
         else
           graph[i][j] = 0;
       }
-      graph[14][15] = 0;
-      graph[15][14] = 0;
+    graph[14][15] = 0;
+    graph[15][14] = 0;
 
     for (int i = 15; i < 20; i++)
       for (int j = 15; j < 20; j++) {
@@ -100,7 +113,8 @@ public:
     if (new_initial_position && new_goal_to_reach) {
       srcPoint = get_nearest_node(pointArray, V, initial_position);
       goalPoint = get_nearest_node(pointArray, V, goal_to_reach);
-      ROS_INFO_STREAM("srcPoint: " << srcPoint << " goalPoint: " << goalPoint << std::endl);
+      ROS_INFO_STREAM("srcPoint: " << srcPoint << " goalPoint: " << goalPoint
+                                   << std::endl);
       dijkstra(graph, srcPoint);
 
       ROS_INFO("Publishing new path to go");
@@ -216,7 +230,8 @@ public:
     float min_distance = std::numeric_limits<float>::max();
     size_t nearest_node = 0;
     for (size_t i = 0; i < nodes_len; i++) {
-      ROS_INFO_STREAM("Node: " << nodes[i].position.x << ", " << nodes[i].position.y << std::endl);
+      ROS_INFO_STREAM("Node: " << nodes[i].position.x << ", "
+                               << nodes[i].position.y << std::endl);
       float distance = distancePoints(nodes[i].position, current_node);
       ROS_INFO_STREAM("Distance: " << distance << std::endl);
       if (distance < min_distance) {
@@ -237,7 +252,8 @@ public:
   // CALLBACKS
   /*//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////*/
-  void getPosition(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg) {
+  void
+  getPosition(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr &msg) {
     ROS_INFO_STREAM("Initial position: " << msg);
     initial_position = msg->pose.pose.position;
     ROS_INFO_STREAM("Saved as initial_position :" << initial_position << "\n");
@@ -252,7 +268,8 @@ public:
     new_goal_to_reach = true;
   }
 
-  void final_goal_to_reachCallback(const geometry_msgs::PoseStamped::ConstPtr& msg){
+  void
+  final_goal_to_reachCallback(const geometry_msgs::PoseStamped::ConstPtr &msg) {
     ROS_INFO_STREAM("Received global goal " << msg);
     goal_to_reach.x = msg->pose.position.x;
     goal_to_reach.y = msg->pose.position.y;
