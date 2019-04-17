@@ -49,6 +49,7 @@ local_planner node:
 global_planer goal:
 ==========
 + subscribes:
+  + global_planner/initial_position
   + global_planner/global_goal
 
 + publishes
