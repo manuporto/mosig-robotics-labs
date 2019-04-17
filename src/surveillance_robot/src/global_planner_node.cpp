@@ -15,7 +15,7 @@
 #include <tf/transform_datatypes.h>
 
 // Number of vertices in the graph
-#define V 4
+#define V 21
 
 class global_planner {
 private:
@@ -36,6 +36,7 @@ private:
   geometry_msgs::Pose pointArray[V];
   geometry_msgs::Pose finalPathPoint[V];
   int graph[V][V];
+  float graph_dist[V][V];
 
   int state;
   bool display_state;
@@ -73,7 +74,7 @@ public:
         graph[i][j] = adj[i][j];
       }
     }
-    // estimate_graph_position();
+    estimate_graph_position();
 
     // INFINTE LOOP TO COLLECT POSITION DATA AND PROCESS THEM
     ros::Rate r(10); // this node will work at 10hz
@@ -86,22 +87,15 @@ public:
   }
 
   void estimate_graph_position() {
-    for (int i = 0; i < 14; i++)
-      for (int j = 0; j < 14; j++) {
-        if (abs(i - j) == 1)
-          graph[i][j] = 1;
+    for(int i=0; i<V; i++)
+      for(int j=0; j<V; j++)
+      {
+        if (graph[i][j] == 1)
+          {
+            graph_dist[i][j] = distancePoints (pointArray[i].position , pointArray[j].position);
+          }
         else
-          graph[i][j] = 0;
-      }
-    graph[14][15] = 0;
-    graph[15][14] = 0;
-
-    for (int i = 15; i < 20; i++)
-      for (int j = 15; j < 20; j++) {
-        if (abs(i - j) == 1)
-          graph[i][j] = 1;
-        else
-          graph[i][j] = 0;
+          graph_dist[i][j] = 0;
       }
   }
 
@@ -115,7 +109,7 @@ public:
       goalPoint = get_nearest_node(pointArray, V, goal_to_reach);
       ROS_INFO_STREAM("srcPoint: " << srcPoint << " goalPoint: " << goalPoint
                                    << std::endl);
-      dijkstra(graph, srcPoint);
+      dijkstra(graph_dist, srcPoint);
 
       ROS_INFO("Publishing new path to go");
       geometry_msgs::PoseArray pubFinalPathPoint;
@@ -127,103 +121,87 @@ public:
 
   } // update
 
-  // A utility function to find the vertex with minimum distance value, from
-  // the set of vertices not yet included in shortest path tree
-  int minDistance(int dist[], bool sptSet[]) {
-    // Initialize min value
-    int min = INT_MAX, min_index;
-
-    for (int i = 0; i < V; i++)
-      if (sptSet[i] == false && dist[i] <= min)
-        min = dist[i], min_index = i;
-
-    return min_index;
-  }
-
-  void getFinalPathPoint(int arr[]) {
+void getFinalPathPoint(int path[], int n){
     int j = 0;
-    for (int i = 0; i < V; i++) {
-      j = arr[i];
+    for (int i = 0; i <= n; i++) {
+      j = path[i];
       finalPathPoint[i] = pointArray[j];
       ROS_INFO_STREAM("========= Path: " << finalPathPoint[i] << " ");
     }
     ROS_INFO_STREAM(std::endl);
-  }
+}
 
-  // Function to print shortest
-  // path from source to goal
-  // using path array
-  void printPath(int path[], int j) {
-    // Base Case : If j is source
-    if (path[j] == -1)
-      return;
-    ROS_INFO_STREAM("Path j: " << path[j] << " J: " << j << std::endl);
-    printPath(path, path[j]);
+void dijkstra(float graph[V][V],int startnode)
+{
+  int cnt=0, x=0, y=0;
+  int path[V], mainPath[V];
+	float cost[V][V],distance[V];
+	int visited[V],pred[V],count,mindistance,nextnode,i,j;
+	
+	//pred[] stores the predecessor of each node
+	//count gives the number of nodes seen so far
+	//create the cost matrix
+	for(int i=0;i<V;i++)
+		for(int j=0;j<V;j++)
+			if(graph[i][j]==0)
+				cost[i][j]= std::numeric_limits<int>::max();
+			else
+				cost[i][j]=graph[i][j];
+	
+	//initialize pred[],distance[] and visited[]
+	for(int i=0;i<V;i++)
+	{
+		distance[i]=cost[startnode][i];
+		pred[i]=startnode;
+		visited[i]=0;
+	}
+	
+	distance[startnode]=0;
+	visited[startnode]=1;
+	count=1;
+	
+	while(count<V-1)
+	{
+		mindistance= std::numeric_limits<int>::max();
+		
+		//nextnode gives the node at minimum distance
+		for(int i=0;i<V;i++)
+			if(distance[i]<mindistance&&!visited[i])
+			{
+				mindistance=distance[i];
+				nextnode=i;
+			}
+			
+			//check if a better path exists through nextnode			
+			visited[nextnode]=1;
+			for(int i=0;i<V;i++)
+				if(!visited[i])
+					if(mindistance+cost[nextnode][i]<distance[i])
+					{
+						distance[i]=mindistance+cost[nextnode][i];
+						pred[i]=nextnode;
+					}
+		count++;
+	}
 
-    int finalpath[V];
-    for (int i = 0; i < V; i++) {
-      ROS_INFO_STREAM("I: " << i << std::endl);
-      finalpath[i] = j;
+		if(goalPoint!=startnode)
+		{			
+			j=goalPoint;
+			do
+			{
+				j=pred[j];
+ 				path[cnt] = j;
+                cnt = cnt+1;
+			}while(j!=startnode);
+	  }
+
+    for( x=cnt-1 , y=0; x>=0, y<cnt; x--, y++){
+        mainPath[y] = path[x];
     }
-    getFinalPathPoint(finalpath);
-  }
+    mainPath[y] = goalPoint;
+    getFinalPathPoint(mainPath,cnt);
+}
 
-  // Function that implements Dijkstra's single source shortest path algorithm
-  // for a graph represented using adjacency matrix representation
-  void dijkstra(int graph[V][V], int src) {
-    ROS_INFO("CHECK 1");
-    // The output array.  dist[i] will hold the shortest distance from src to i
-    int dist[V];
-
-    // sptSet[i] will be true if vertex i is included in shortest
-    // path tree or shortest distance from src to i is finalized
-    bool sptSet[V];
-
-    // path array to store
-    // shortest path tree
-    int path[V];
-
-    // Initialize all distances as
-    // INFINITE and stpSet[] as false
-    for (int i = 0; i < V; i++) {
-      path[0] = -1;
-      dist[i] = std::numeric_limits<int>::max();
-      sptSet[i] = false;
-    }
-
-    // Distance of source vertex from itself is always 0
-    dist[src] = 0;
-    ROS_INFO("CHECK 2");
-    // Find shortest path for all vertices
-    for (int count = 0; count < V - 1; count++) {
-      // Pick the minimum distance vertex from the set of vertices not
-      // yet processed. u is always equal to src in the first
-      // iteration.
-      int u = minDistance(dist, sptSet);
-
-      // Mark the picked vertex as processed
-      sptSet[u] = true;
-
-      // Update dist value of the adjacent vertices of the picked vertex.
-      for (int i = 0; i < V; i++)
-        // Update dist[V] only if is
-        // not in sptSet, there is
-        // an edge from u to V, and
-        // total weight of path from
-        // src to V through u is smaller
-        // than current value of
-        // dist[V]
-        if (!sptSet[i] && graph[u][i] && dist[u] + graph[u][i] < dist[i]) {
-          ROS_INFO_STREAM("U: " << u << std::endl);
-          path[i] = u;
-          dist[i] = dist[u] + graph[u][i];
-        }
-    }
-    ROS_INFO("CHECK 3");
-    // print the constructed distance array
-    printPath(path, goalPoint);
-    ROS_INFO("CHECK 4");
-  }
 
   size_t get_nearest_node(geometry_msgs::Pose nodes[], size_t nodes_len,
                           geometry_msgs::Point current_node) {
