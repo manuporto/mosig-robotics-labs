@@ -29,7 +29,7 @@ private:
                              // not
 
   geometry_msgs::Point goal_to_reach;
-  geometry_msgs::Pose initial_position;
+  geometry_msgs::Point initial_position;
 
   geometry_msgs::Pose p1;
   geometry_msgs::Pose p2;
@@ -69,9 +69,9 @@ public:
   global_planner() {
 
     // Communication with decision node
-    sub_goal = n.subscribe("global_planner/global_goal", 1,
-                           &global_planner::getPointGoal, this);
-    sub_goal = n.subscribe("global_planner/initial_position", 1,
+    sub_goal = n.subscribe("move_base_simple/goal", 1,
+                           &global_planner::final_goal_to_reachCallback, this);
+    sub_initial_position = n.subscribe("/initialpose", 1,
                            &global_planner::getPosition, this);
     pub_path_to_go =
         n.advertise<geometry_msgs::PoseArray>("global_planer/planned_path", 1);
@@ -181,7 +181,7 @@ public:
   void update() {
 
     if (new_initial_position && new_goal_to_reach) {
-      srcPoint = get_nearest_node(pointArray, V, initial_position.position);
+      srcPoint = get_nearest_node(pointArray, V, initial_position);
       goalPoint = get_nearest_node(pointArray, V, goal_to_reach);
       dijkstra(graph, srcPoint);
 
@@ -213,7 +213,9 @@ public:
     for (int i = 0; i < V; i++) {
       j = arr[i];
       finalPathPoint[i] = pointArray[j];
+      ROS_INFO_STREAM("========= Path: " << finalPathPoint[i] << " ");
     }
+    ROS_INFO_STREAM(std::endl);
   }
 
   // Function to print shortest
@@ -223,11 +225,12 @@ public:
     // Base Case : If j is source
     if (path[j] == -1)
       return;
-
+    ROS_INFO_STREAM("Path j: " << path[j] << " J: " << j << std::endl);
     printPath(path, path[j]);
 
     int finalpath[V];
     for (int i = 0; i < V; i++) {
+      ROS_INFO_STREAM("I: " << i << std::endl);
       finalpath[i] = j;
     }
     getFinalPathPoint(finalpath);
@@ -236,6 +239,7 @@ public:
   // Function that implements Dijkstra's single source shortest path algorithm
   // for a graph represented using adjacency matrix representation
   void dijkstra(int graph[V][V], int src) {
+    ROS_INFO("CHECK 1");
     // The output array.  dist[i] will hold the shortest distance from src to i
     int dist[V];
 
@@ -257,7 +261,7 @@ public:
 
     // Distance of source vertex from itself is always 0
     dist[src] = 0;
-
+    ROS_INFO("CHECK 2");
     // Find shortest path for all vertices
     for (int count = 0; count < V - 1; count++) {
       // Pick the minimum distance vertex from the set of vertices not
@@ -278,13 +282,15 @@ public:
         // than current value of
         // dist[V]
         if (!sptSet[i] && graph[u][i] && dist[u] + graph[u][i] < dist[i]) {
+          ROS_INFO_STREAM("U: " << u << std::endl);
           path[i] = u;
           dist[i] = dist[u] + graph[u][i];
         }
     }
-
+    ROS_INFO("CHECK 3");
     // print the constructed distance array
     printPath(path, goalPoint);
+    ROS_INFO("CHECK 4");
   }
 
   size_t get_nearest_node(geometry_msgs::Pose nodes[], size_t nodes_len,
@@ -308,9 +314,9 @@ public:
   // CALLBACKS
   /*//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////*/
-  void getPosition(const geometry_msgs::Pose::ConstPtr &msg) {
+  void getPosition(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg) {
     ROS_INFO_STREAM("Initial position: " << msg);
-    initial_position.position = msg->position;
+    initial_position = msg->pose.pose.position;
     ROS_INFO_STREAM("Saved as initial_position :" << initial_position << "\n");
     new_initial_position = true;
   }
@@ -320,6 +326,13 @@ public:
     goal_to_reach.x = msg->x;
     goal_to_reach.y = msg->y;
     ROS_INFO_STREAM("Saved as goal_to_reach :" << goal_to_reach);
+    new_goal_to_reach = true;
+  }
+
+  void final_goal_to_reachCallback(const geometry_msgs::PoseStamped::ConstPtr& msg){
+    ROS_INFO_STREAM("Received global goal " << msg);
+    goal_to_reach.x = msg->pose.position.x;
+    goal_to_reach.y = msg->pose.position.y;
     new_goal_to_reach = true;
   }
 };
