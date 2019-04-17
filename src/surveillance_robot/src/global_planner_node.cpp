@@ -226,12 +226,12 @@ public:
   // Function that implements Dijkstra's single source shortest path algorithm
   // for a graph represented using adjacency matrix representation
   void dijkstra(int graph[V][V], int src) {
-    int dist[V]; // The output array.  dist[i] will hold the shortest
-    // distance from src to i
+    // The output array.  dist[i] will hold the shortest distance from src to i
+    int dist[V];
 
-    bool
-        sptSet[V]; // sptSet[i] will be true if vertex i is included in shortest
+    // sptSet[i] will be true if vertex i is included in shortest
     // path tree or shortest distance from src to i is finalized
+    bool sptSet[V];
 
     // path array to store
     // shortest path tree
@@ -241,7 +241,7 @@ public:
     // INFINITE and stpSet[] as false
     for (int i = 0; i < V; i++) {
       path[0] = -1;
-      dist[i] = INT_MAX;
+      dist[i] = std::numeric_limits<int>::max();
       sptSet[i] = false;
     }
 
@@ -298,9 +298,8 @@ public:
   // CALLBACKS
   /*//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////*/
-  void
-  getPosition(const geometry_msgs::Pose::ConstPtr &msg) {
-    ROS_INFO_STREAM("Estimated position: " << msg);
+  void getPosition(const geometry_msgs::Pose::ConstPtr &msg) {
+    ROS_INFO_STREAM("Initial position: " << msg);
     initial_position.position = msg->position;
     ROS_INFO_STREAM("Saved as initial_position :" << initial_position << "\n");
     new_initial_position = true;
@@ -316,7 +315,7 @@ public:
 };
 
 int main(int argc, char **argv) {
-  ROS_INFO("(planner_node) waiting for a /goal_to_reach and "
+  ROS_INFO("(planner_node) waiting for a /goal_to_reach and an "
            "/initial_position");
   ros::init(argc, argv, "planner");
 
