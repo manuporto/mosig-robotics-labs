@@ -2,7 +2,6 @@
 #include "geometry_msgs/PoseArray.h"
 #include "geometry_msgs/PoseWithCovarianceStamped.h"
 #include "geometry_msgs/Quaternion.h"
-#include "json.hpp"
 #include "map_file_parser.hpp"
 #include "nav_msgs/Odometry.h"
 #include "ros/ros.h"
@@ -13,9 +12,7 @@
 #include <limits.h>
 #include <stdio.h>
 #include <tf/transform_datatypes.h>
-
-// Number of vertices in the graph
-#define V 21
+#include <vector>
 
 class global_planner {
 private:
@@ -33,10 +30,11 @@ private:
   geometry_msgs::Point goal_to_reach;
   geometry_msgs::Point initial_position;
 
-  geometry_msgs::Pose pointArray[V];
-  geometry_msgs::Pose finalPathPoint[V];
-  int graph[V][V];
-  float graph_dist[V][V];
+  std::vector<geometry_msgs::Pose> pointArray;
+  std::vector<geometry_msgs::Pose> finalPathPoint;
+  int number_of_vertices;
+  std::vector<std::vector<int>> graph;
+  std::vector<std::vector<float>> graph_dist;
 
   int state;
   bool display_state;
@@ -60,20 +58,15 @@ public:
 
     MapFileParser mparser(
         "src/surveillance_robot/res/corridor/corridor_graph.json");
-    ROS_INFO_STREAM("Number of vertices: " << mparser.getNumberOfVertices());
+    number_of_vertices = mparser.getNumberOfVertices();
     std::vector<std::pair<float, float>> points = mparser.getPoints();
     for (int i = 0; i < points.size(); i++) {
-      ROS_INFO_STREAM("x: " << points[i].first << " y: " << points[i].second);
-      pointArray[i].position.x = points[i].first;
-      pointArray[i].position.y = points[i].second;
+      geometry_msgs::Pose aPose;
+      aPose.position.x = points[i].first;
+      aPose.position.y = points[i].second;
+      pointArray.push_back(aPose);
     }
-    std::vector<std::vector<int>> adj = mparser.getAdjacencyMatrix();
-    for (int i = 0; i < adj.size(); i++) {
-      for (int j = 0; j < adj[i].size(); j++) {
-        ROS_INFO_STREAM("Graph: " << adj[i][j]);
-        graph[i][j] = adj[i][j];
-      }
-    }
+    graph = mparser.getAdjacencyMatrix();
     estimate_graph_position();
 
     // INFINTE LOOP TO COLLECT POSITION DATA AND PROCESS THEM
@@ -87,16 +80,17 @@ public:
   }
 
   void estimate_graph_position() {
-    for(int i=0; i<V; i++)
-      for(int j=0; j<V; j++)
-      {
-        if (graph[i][j] == 1)
-          {
-            graph_dist[i][j] = distancePoints (pointArray[i].position , pointArray[j].position);
-          }
-        else
-          graph_dist[i][j] = 0;
+    for (int i = 0; i < number_of_vertices; i++) {
+      std::vector<float> row;
+      graph_dist.push_back(row);
+      for (int j = 0; j < number_of_vertices; j++) {
+        if (graph[i][j] == 1) {
+          graph_dist[i].push_back(
+              distancePoints(pointArray[i].position, pointArray[j].position));
+        } else
+          graph_dist[i].push_back(0);
       }
+    }
   }
 
   // UPDATE: main processing
@@ -105,15 +99,16 @@ public:
   void update() {
 
     if (new_initial_position && new_goal_to_reach) {
-      srcPoint = get_nearest_node(pointArray, V, initial_position);
-      goalPoint = get_nearest_node(pointArray, V, goal_to_reach);
+      srcPoint = get_nearest_node(pointArray, initial_position);
+      goalPoint = get_nearest_node(pointArray, goal_to_reach);
       ROS_INFO_STREAM("srcPoint: " << srcPoint << " goalPoint: " << goalPoint
                                    << std::endl);
-      dijkstra(graph_dist, srcPoint);
+      dijkstra(srcPoint);
 
       ROS_INFO("Publishing new path to go");
       geometry_msgs::PoseArray pubFinalPathPoint;
-      pubFinalPathPoint.poses.assign(finalPathPoint, finalPathPoint + V);
+      pubFinalPathPoint.poses.assign(finalPathPoint.begin(),
+                                     finalPathPoint.end());
       pub_path_to_go.publish(pubFinalPathPoint);
       new_goal_to_reach = false;
       new_initial_position = false;
@@ -121,93 +116,91 @@ public:
 
   } // update
 
-void getFinalPathPoint(int path[], int n){
+  void getFinalPathPoint(std::vector<int> path, int n) {
     int j = 0;
     for (int i = 0; i <= n; i++) {
       j = path[i];
-      finalPathPoint[i] = pointArray[j];
+      finalPathPoint.push_back(pointArray[j]);
       ROS_INFO_STREAM("========= Path: " << finalPathPoint[i] << " ");
     }
-    ROS_INFO_STREAM(std::endl);
-}
+  }
 
-void dijkstra(float graph[V][V],int startnode)
-{
-  int cnt=0, x=0, y=0;
-  int path[V], mainPath[V];
-	float cost[V][V],distance[V];
-	int visited[V],pred[V],count,mindistance,nextnode,i,j;
-	
-	//pred[] stores the predecessor of each node
-	//count gives the number of nodes seen so far
-	//create the cost matrix
-	for(int i=0;i<V;i++)
-		for(int j=0;j<V;j++)
-			if(graph[i][j]==0)
-				cost[i][j]= std::numeric_limits<int>::max();
-			else
-				cost[i][j]=graph[i][j];
-	
-	//initialize pred[],distance[] and visited[]
-	for(int i=0;i<V;i++)
-	{
-		distance[i]=cost[startnode][i];
-		pred[i]=startnode;
-		visited[i]=0;
-	}
-	
-	distance[startnode]=0;
-	visited[startnode]=1;
-	count=1;
-	
-	while(count<V-1)
-	{
-		mindistance= std::numeric_limits<int>::max();
-		
-		//nextnode gives the node at minimum distance
-		for(int i=0;i<V;i++)
-			if(distance[i]<mindistance&&!visited[i])
-			{
-				mindistance=distance[i];
-				nextnode=i;
-			}
-			
-			//check if a better path exists through nextnode			
-			visited[nextnode]=1;
-			for(int i=0;i<V;i++)
-				if(!visited[i])
-					if(mindistance+cost[nextnode][i]<distance[i])
-					{
-						distance[i]=mindistance+cost[nextnode][i];
-						pred[i]=nextnode;
-					}
-		count++;
-	}
+  void dijkstra(int startnode) {
+    int cnt = 0, x = 0, y = 0;
+    std::vector<int> path, mainPath;
+    std::vector<std::vector<float>> cost;
+    std::vector<float> distance;
+    std::vector<int> visited, pred;
+    int count, mindistance, nextnode, i, j;
 
-		if(goalPoint!=startnode)
-		{			
-			j=goalPoint;
-			do
-			{
-				j=pred[j];
- 				path[cnt] = j;
-                cnt = cnt+1;
-			}while(j!=startnode);
-	  }
-
-    for( x=cnt-1 , y=0; x>=0, y<cnt; x--, y++){
-        mainPath[y] = path[x];
+    // pred[] stores the predecessor of each node
+    // count gives the number of nodes seen so far
+    // create the cost matrix
+    for (int i = 0; i < number_of_vertices; i++) {
+      std::vector<float> row_cost;
+      cost.push_back(row_cost);
+      for (int j = 0; j < number_of_vertices; j++) {
+        if (graph_dist[i][j] == 0)
+          cost[i].push_back(std::numeric_limits<int>::max());
+        else
+          cost[i].push_back(graph_dist[i][j]);
+      }
     }
-    mainPath[y] = goalPoint;
-    getFinalPathPoint(mainPath,cnt);
-}
 
+    // initialize pred[],distance[] and visited[]
+    for (int i = 0; i < number_of_vertices; i++) {
+      distance.push_back(cost[startnode][i]);
+      pred.push_back(startnode);
+      visited.push_back(0);
+    }
+    
+    distance[startnode] = 0;
+    visited[startnode] = 1;
+    count = 1;
 
-  size_t get_nearest_node(geometry_msgs::Pose nodes[], size_t nodes_len,
-                          geometry_msgs::Point current_node) {
+    while (count < number_of_vertices - 1) {
+      mindistance = std::numeric_limits<int>::max();
+
+      // nextnode gives the node at minimum distance
+      for (int i = 0; i < number_of_vertices; i++)
+        if (distance[i] < mindistance && !visited[i]) {
+          mindistance = distance[i];
+          nextnode = i;
+        }
+
+      // check if a better path exists through nextnode
+      visited[nextnode] = 1;
+      for (int i = 0; i < number_of_vertices; i++)
+        if (!visited[i])
+          if (mindistance + cost[nextnode][i] < distance[i]) {
+            distance[i] = mindistance + cost[nextnode][i];
+            pred[i] = nextnode;
+          }
+      count++;
+    }
+    
+    if (goalPoint != startnode) {
+      j = goalPoint;
+      do {
+        j = pred[j];
+        path.push_back(j);
+        cnt = cnt + 1;
+      } while (j != startnode);
+    }
+
+    for (x = cnt - 1, y = 0; x >= 0, y < cnt; x--, y++) {
+      mainPath.push_back(path[x]);
+    }
+
+    mainPath.push_back(goalPoint);
+    getFinalPathPoint(mainPath, cnt);
+  }
+
+  int get_nearest_node(std::vector<geometry_msgs::Pose> nodes,
+                       geometry_msgs::Point current_node) {
     float min_distance = std::numeric_limits<float>::max();
-    size_t nearest_node = 0;
-    for (size_t i = 0; i < nodes_len; i++) {
+    int nearest_node = 0;
+    for (int i = 0; i < number_of_vertices; i++) {
       ROS_INFO_STREAM("Node: " << nodes[i].position.x << ", "
                                << nodes[i].position.y << std::endl);
       float distance = distancePoints(nodes[i].position, current_node);
@@ -232,7 +225,7 @@ void dijkstra(float graph[V][V],int startnode)
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////*/
   void
   getPosition(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr &msg) {
-    ROS_INFO_STREAM("Initial position: " << msg);
+    ROS_INFO_STREAM("Received new initial position");
     initial_position = msg->pose.pose.position;
     ROS_INFO_STREAM("Saved as initial_position :" << initial_position << "\n");
     new_initial_position = true;
@@ -248,9 +241,10 @@ void dijkstra(float graph[V][V],int startnode)
 
   void
   final_goal_to_reachCallback(const geometry_msgs::PoseStamped::ConstPtr &msg) {
-    ROS_INFO_STREAM("Received global goal " << msg);
+    ROS_INFO_STREAM("Received global goal");
     goal_to_reach.x = msg->pose.position.x;
     goal_to_reach.y = msg->pose.position.y;
+    ROS_INFO_STREAM("Saved as goal_to_reach :" << goal_to_reach);
     new_goal_to_reach = true;
   }
 };
