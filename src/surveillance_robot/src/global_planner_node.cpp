@@ -66,51 +66,47 @@ public:
     number_of_vertices = mparser.getNumberOfVertices();
     std::vector<std::pair<float, float>> points = mparser.getPoints();
 
+    //display all intermidiate poitns in RVIZ
     visualization_msgs::Marker marker;
     marker.header.frame_id = "/map";
     marker.header.stamp = ros::Time();
     marker.type = visualization_msgs::Marker::POINTS;
     marker.action = visualization_msgs::Marker::ADD;
-    marker.scale.x = 0.1;
-    marker.scale.y = 0.1;
-    marker.scale.z = 0.1;
+    marker.scale.x = 0.5;
+    marker.scale.y = 0.5;
+    marker.scale.z = 0.5;
 
     marker.color.a = 1.0;
-    marker.color.r = 1.0;
-    marker.color.g = 0.0;
+    marker.color.r = 0.0;
+    marker.color.g = 1.0;
     marker.color.b = 0.0;
-
-
 
     for (int i = 0; i < points.size(); i++) {
       geometry_msgs::Pose aPose;
       aPose.position.x = points[i].first;
       aPose.position.y = points[i].second;
+      pointArray.push_back(aPose);
+
+      //fill the marker message
       geometry_msgs::Point p;
       p.x = aPose.position.x;
       p.y = aPose.position.y;
-
-
-      std_msgs::ColorRGBA c;
-      c.r = 1.0;
       marker.points.push_back(p);
-      marker.colors.push_back(c);
-      pointArray.push_back(aPose);
     }
 
-    for (size_t i = 0; i < 100; i++) {
-      ROS_INFO("Published to rviz");
-    pub_path_rviz.publish(marker);
-      /* code */
+    ros::Rate rate(100);
+    while(pub_path_rviz.getNumSubscribers() == 0){
+      rate.sleep();
     }
-    ros::Duration(1).sleep();
+
     pub_path_rviz.publish(marker);
     ROS_INFO("Published to rviz");
+
     graph = mparser.getAdjacencyMatrix();
     estimate_graph_position();
 
     // INFINTE LOOP TO COLLECT POSITION DATA AND PROCESS THEM
-    ros::Rate r(100); // this node will work at 10hz
+    ros::Rate r(10); // this node will work at 10hz
     while (ros::ok()) {
       ros::spinOnce(); // each callback is called once
       update();
@@ -156,7 +152,12 @@ public:
 
       pubFinalPathPoint.poses.assign(finalPathPoint.begin(),
                                      finalPathPoint.end());
-      ros::Duration(1).sleep();
+
+      ros::Rate rate(100);
+      while(pub_path_to_go.getNumSubscribers() == 0){
+        rate.sleep();
+      }
+
       pub_path_to_go.publish(pubFinalPathPoint);
       new_goal_to_reach = false;
       new_initial_position = false;

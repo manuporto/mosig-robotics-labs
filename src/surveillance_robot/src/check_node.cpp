@@ -3,7 +3,7 @@
 #include "geometry_msgs/PoseWithCovarianceStamped.h"
 #include "std_msgs/Bool.h"
 
-#define RECALCULATION_TRESHOLD 5
+#define RECALCULATION_TRESHOLD 0.5
 
 class check_node {
     private:

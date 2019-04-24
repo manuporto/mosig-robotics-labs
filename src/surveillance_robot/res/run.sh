@@ -19,9 +19,11 @@ rosrun amcl amcl _odom_alpha1:=5 _update_min_a:=0.17 _odoalpha2:=0.05 _odom_alph
 
 # Run surveillance_robot nodes
 rosrun surveillance_robot surveillance_robot_decision_node&
+rosrun surveillance_robot surveillance_robot_check_node&
 rosrun surveillance_robot surveillance_robot_translation_node&
 rosrun surveillance_robot surveillance_robot_rotation_node&
-# rosrun surveillance_robot surveillance_robot_obstacle_detection_node&
+rosrun surveillance_robot surveillance_robot_obstacle_detection_node&
 rosrun surveillance_robot surveillance_robot_local_planner_node&
+rosrun surveillance_robot surveillance_robot_global_planner_node&
 
 jobs -p

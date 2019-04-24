@@ -36,6 +36,7 @@ private:
 
     int state;
     bool display_state;
+    bool debug;
 
 public:
 local_planner() {
@@ -44,15 +45,19 @@ local_planner() {
     display_state = false;
     new_position = false;
     new_local_goal_to_reach = false;
+    debug = false;
 
     pub_tran_rot_to_do = n.advertise<geometry_msgs::Point>("local_planner/translation_rotation", 1);
 
 
-    sub_current_position = n.subscribe("amcl_pose", 1, &local_planner::getPosition, this);
-    sub_next_local_goal = n.subscribe("local_planner/local_goal", 1, &local_planner::getPointGoal, this);
-
-    //debugging
-    // sub_next_local_goal = n.subscribe("move_base_simple/goal", 1, &local_planner::getPointGoal, this);
+    if(debug){
+      sub_current_position = n.subscribe("initialpose", 1, &local_planner::getPosition, this);
+      sub_next_local_goal = n.subscribe("move_base_simple/goal", 1, &local_planner::getPointGoal, this);
+    }
+    else{
+      sub_current_position = n.subscribe("amcl_pose", 1, &local_planner::getPosition, this);
+      sub_next_local_goal = n.subscribe("local_planner/local_goal", 1, &local_planner::getPointGoal, this);
+    }
 
     //INFINTE LOOP TO COLLECT POSITION DATA AND PROCESS THEM
     ros::Rate r(10);// this node will work at 10hz
@@ -94,7 +99,8 @@ void update() {
         ROS_INFO_STREAM(translation_rotation);
         pub_tran_rot_to_do.publish(translation_rotation);
         new_local_goal_to_reach = false;
-        new_position = false;
+        if(debug == false)
+          new_position = false;
     }
 }// update
 
@@ -144,19 +150,21 @@ float deg_from_quaternion(geometry_msgs::Quaternion msg){
     rpy.y = pitch;
     rpy.z = yaw;
 
-    // ROS_INFO("Angles: roll=%f pitch=%f yaw=%f", rpy.x, rpy.y, rpy.z);
+    if(debug)
+      ROS_INFO("Angles: roll=%f pitch=%f yaw=%f", rpy.x, rpy.y, rpy.z);
 
 
     float degree = rpy.z;
-    // ROS_INFO("Angle from quaternion: %f", degree*180/M_PI);
+    if(debug)
+      ROS_INFO("Angle from quaternion: %f", degree*180/M_PI);
     if(degree > 0){
       degree = abs(2*M_PI - degree);
     }
     if(degree < 0){
       degree = abs(degree);
     }
-
-    // ROS_INFO("Edited: %f", degree*180/M_PI);
+    if(debug)
+      ROS_INFO("Edited: %f", degree*180/M_PI);
     return degree;
 }
 
@@ -164,9 +172,13 @@ float get_angle_to_do(geometry_msgs::Pose position, geometry_msgs::Point point){
   geometry_msgs::Point current_point = position.position;
   geometry_msgs::Quaternion current_orientation = position.orientation;
   float angle_to_do = atan2( point.y-current_point.y, point.x-current_point.x);
-  // ROS_INFO("Rotation to do without current orientation: %f\n", angle_to_do*180/M_PI);
+  if(debug)
+    ROS_INFO("Rotation to do without current orientation: %f\n", angle_to_do*180/M_PI);
   deg_from_quaternion(current_orientation);
   angle_to_do+=deg_from_quaternion(current_orientation);
+  if(debug)
+    ROS_INFO("Rotation to do: %f", angle_to_do*180/M_PI);
+
   if(angle_to_do > M_PI){
     angle_to_do = angle_to_do - 2*M_PI;
   }

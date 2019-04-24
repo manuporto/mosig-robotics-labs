@@ -101,12 +101,11 @@ decision() {
     debug = true;
 
     //INFINITE LOOP TO COLLECT LASER DATA AND PROCESS THEM
-    // ros::Rate r(10);// this node will work at 10hz
+    ros::Rate r(100);// this node will work at 10hz
     while (ros::ok()) {
         ros::spinOnce();//each callback is called once
         update();
-        ros::Duration(1).sleep();
-        // r.duration(1).sleep();//we wait if the processing (ie, callback+update) has taken less than 0.1s (ie, 10 hz)
+        r.sleep();
     }
 
 }
@@ -125,6 +124,11 @@ void update() {
     if(state == 0 && new_global_goal){
       ROS_INFO("(decision_node) /Publishing the global goal to the global planner");
       wait_user_input();
+
+      ros::Rate rate(100);
+      while(pub_global_planner.getNumSubscribers() == 0){
+        rate.sleep();
+      }
       pub_global_planner.publish(global_goal);
       state = 1;
       new_global_goal = false;
@@ -263,6 +267,7 @@ void wait_user_input(){
     do{
     }
     while(inputString.compare("next") != 0);
+    std::cout << '\n' << "ok...";
   }
 }
 

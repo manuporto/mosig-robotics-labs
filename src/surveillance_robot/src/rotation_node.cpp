@@ -9,11 +9,11 @@
 #include <tf/transform_datatypes.h>
 #include "geometry_msgs/Point.h"
 
-#define rotation_error 0.07 //radians
+#define rotation_error 0.09 //radians
 
 #define kp 0.1
 #define ki 0.001
-#define kd 0.15
+#define kd 0.1
 
 class rotation {
 private:

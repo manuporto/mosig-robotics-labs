@@ -19,7 +19,7 @@
 #include "message_filters/subscriber.h"
 #include "tf/message_filter.h"
 
-float robair_size = 0.3;//0.2 for small robair
+float robair_size = 0.2;//0.2 for small robair
 
 using namespace std;
 
@@ -128,7 +128,7 @@ void scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan) {
     init_laser = true;
 
     // store the important data related to laserscanner
-    range_min = scan->range_min;
+    range_min = scan->range_min; // TODO change this to avoid detecting obstacles on robair's sides
     range_max = scan->range_max;
     angle_min = scan->angle_min;
     angle_max = scan->angle_max;
