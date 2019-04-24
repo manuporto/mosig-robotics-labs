@@ -13,7 +13,8 @@
 #include <stdio.h>
 #include <tf/transform_datatypes.h>
 #include <vector>
-
+#include <visualization_msgs/Marker.h>
+#include "std_msgs/ColorRGBA.h"
 class global_planner {
 private:
   ros::NodeHandle n;
@@ -22,12 +23,13 @@ private:
   ros::Subscriber sub_initial_position;
   ros::Subscriber sub_goal;
   ros::Publisher pub_path_to_go;
+  ros::Publisher pub_path_rviz;
 
   bool new_initial_position; // check if a new position arrived
   bool new_goal_to_reach;    // to check if a new /goal_to_reach is available or
                              // not
 
-  geometry_msgs::Point goal_to_reach;
+  geometry_msgs::Pose goal_to_reach;
   geometry_msgs::Point initial_position;
 
   std::vector<geometry_msgs::Pose> pointArray;
@@ -53,24 +55,62 @@ public:
     pub_path_to_go =
         n.advertise<geometry_msgs::PoseArray>("global_planner/planned_path", 1);
 
+    pub_path_rviz =
+        n.advertise<visualization_msgs::Marker>("global_planner/rviz", 1);
+
     new_initial_position = false;
     new_goal_to_reach = false;
 
     MapFileParser mparser(
-        "src/surveillance_robot/res/corridor/corridor_graph_simple.json");
+        "src/surveillance_robot/res/corridor/corridor_graph.json");
     number_of_vertices = mparser.getNumberOfVertices();
     std::vector<std::pair<float, float>> points = mparser.getPoints();
+
+    visualization_msgs::Marker marker;
+    marker.header.frame_id = "/map";
+    marker.header.stamp = ros::Time();
+    marker.type = visualization_msgs::Marker::POINTS;
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.scale.x = 0.1;
+    marker.scale.y = 0.1;
+    marker.scale.z = 0.1;
+
+    marker.color.a = 1.0;
+    marker.color.r = 1.0;
+    marker.color.g = 0.0;
+    marker.color.b = 0.0;
+
+
+
     for (int i = 0; i < points.size(); i++) {
       geometry_msgs::Pose aPose;
       aPose.position.x = points[i].first;
       aPose.position.y = points[i].second;
+      geometry_msgs::Point p;
+      p.x = aPose.position.x;
+      p.y = aPose.position.y;
+
+
+      std_msgs::ColorRGBA c;
+      c.r = 1.0;
+      marker.points.push_back(p);
+      marker.colors.push_back(c);
       pointArray.push_back(aPose);
     }
+
+    for (size_t i = 0; i < 100; i++) {
+      ROS_INFO("Published to rviz");
+    pub_path_rviz.publish(marker);
+      /* code */
+    }
+    ros::Duration(1).sleep();
+    pub_path_rviz.publish(marker);
+    ROS_INFO("Published to rviz");
     graph = mparser.getAdjacencyMatrix();
     estimate_graph_position();
 
     // INFINTE LOOP TO COLLECT POSITION DATA AND PROCESS THEM
-    ros::Rate r(10); // this node will work at 10hz
+    ros::Rate r(100); // this node will work at 10hz
     while (ros::ok()) {
       ros::spinOnce(); // each callback is called once
       update();
@@ -99,20 +139,24 @@ public:
   void update() {
 
     if (new_initial_position && new_goal_to_reach) {
-      for (size_t i = 0; i < number_of_vertices; i++) {
-        ROS_INFO_STREAM("Point: " << i << pointArray[i]);
-        /* code */
-      }
+
+      geometry_msgs::Point goal_to_reach_point;
+      goal_to_reach_point.x = goal_to_reach.position.x;
+      goal_to_reach_point.y = goal_to_reach.position.y;
+
+
       srcPoint = get_nearest_node(pointArray, initial_position);
-      goalPoint = get_nearest_node(pointArray, goal_to_reach);
+      goalPoint = get_nearest_node(pointArray, goal_to_reach_point);
       ROS_INFO_STREAM("srcPoint: " << srcPoint << " goalPoint: " << goalPoint
                                    << std::endl);
       dijkstra(srcPoint);
 
       ROS_INFO("Publishing new path to go");
       geometry_msgs::PoseArray pubFinalPathPoint;
+
       pubFinalPathPoint.poses.assign(finalPathPoint.begin(),
                                      finalPathPoint.end());
+      ros::Duration(1).sleep();
       pub_path_to_go.publish(pubFinalPathPoint);
       new_goal_to_reach = false;
       new_initial_position = false;
@@ -127,6 +171,7 @@ public:
       finalPathPoint.push_back(pointArray[j]);
       ROS_INFO_STREAM("========= Path: " << finalPathPoint[i] << " ");
     }
+    finalPathPoint.push_back(goal_to_reach);
   }
 
   void dijkstra(int startnode) {
@@ -197,7 +242,6 @@ public:
     }
 
     mainPath.push_back(goalPoint);
-    mainPath.push_back(goal_to_reach);
     getFinalPathPoint(mainPath, cnt);
   }
 
@@ -238,8 +282,9 @@ public:
 
   void getPointGoal(const geometry_msgs::Point::ConstPtr &msg) {
     ROS_INFO_STREAM("Received new global goal: " << msg);
-    goal_to_reach.x = msg->x;
-    goal_to_reach.y = msg->y;
+    goal_to_reach.position.x = msg->x;
+    goal_to_reach.position.y = msg->y;
+    goal_to_reach.position.z = 0;
     ROS_INFO_STREAM("Saved as goal_to_reach :" << goal_to_reach);
     new_goal_to_reach = true;
   }
@@ -247,8 +292,8 @@ public:
   void
   final_goal_to_reachCallback(const geometry_msgs::Point::ConstPtr &msg) {
     ROS_INFO_STREAM("Received global goal");
-    goal_to_reach.x = msg->x;
-    goal_to_reach.y = msg->y;
+    goal_to_reach.position.x = msg->x;
+    goal_to_reach.position.y = msg->y;
     ROS_INFO_STREAM("Saved as goal_to_reach :" << goal_to_reach);
     new_goal_to_reach = true;
   }

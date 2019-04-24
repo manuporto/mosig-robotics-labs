@@ -101,11 +101,12 @@ decision() {
     debug = true;
 
     //INFINITE LOOP TO COLLECT LASER DATA AND PROCESS THEM
-    ros::Rate r(10);// this node will work at 10hz
+    // ros::Rate r(10);// this node will work at 10hz
     while (ros::ok()) {
         ros::spinOnce();//each callback is called once
         update();
-        r.sleep();//we wait if the processing (ie, callback+update) has taken less than 0.1s (ie, 10 hz)
+        ros::Duration(1).sleep();
+        // r.duration(1).sleep();//we wait if the processing (ie, callback+update) has taken less than 0.1s (ie, 10 hz)
     }
 
 }
@@ -260,7 +261,6 @@ void wait_user_input(){
     std_msgs::String msg;
 
     do{
-      std::cout<<inputString<<'\n';
     }
     while(inputString.compare("next") != 0);
   }
