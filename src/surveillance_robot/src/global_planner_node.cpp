@@ -193,6 +193,7 @@ public:
     }
 
     mainPath.push_back(goalPoint);
+    mainPath.push_back(goal_to_reach);
     getFinalPathPoint(mainPath, cnt);
   }
 
