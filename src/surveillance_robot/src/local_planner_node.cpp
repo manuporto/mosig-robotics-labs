@@ -92,7 +92,7 @@ void update() {
         // publish
         ROS_INFO("publishing new tranlation and rotation to do to the decision node");
         ROS_INFO_STREAM(translation_rotation);
-        pub_tran_rot_to_do.publish(translation_rotation); //TODO
+        pub_tran_rot_to_do.publish(translation_rotation);
         new_local_goal_to_reach = false;
         new_position = false;
     }
@@ -118,7 +118,7 @@ void getPointGoal(const geometry_msgs::Point::ConstPtr& msg){//receive new local
     new_local_goal_to_reach = true;
 }
 
-//debugging:
+// //debugging:
 // void getPointGoal(const geometry_msgs::PoseStamped::ConstPtr& msg){//receive new local point to reach from decision node
 //     ROS_INFO_STREAM("Received local goal " << msg);
 //     local_goal_to_reach.x = msg->pose.position.x;
@@ -149,6 +149,14 @@ float deg_from_quaternion(geometry_msgs::Quaternion msg){
 
     float degree = rpy.z;
     ROS_INFO("Angle from quaternion: %f", degree*180/M_PI);
+    if(degree > 0){
+      degree = abs(2*M_PI - degree);
+    }
+    if(degree < 0){
+      degree = abs(degree);
+    }
+
+    ROS_INFO("Edited: %f", degree*180/M_PI);
     return degree;
 }
 
@@ -158,7 +166,11 @@ float get_angle_to_do(geometry_msgs::Pose position, geometry_msgs::Point point){
   float angle_to_do = atan2( point.y-current_point.y, point.x-current_point.x);
   ROS_INFO("Rotation to do without current orientation: %f\n", angle_to_do*180/M_PI);
   deg_from_quaternion(current_orientation);
-  angle_to_do-=deg_from_quaternion(current_orientation);
+  angle_to_do+=deg_from_quaternion(current_orientation);
+  ROS_INFO("Rotation to do: %f", angle_to_do*180/M_PI);
+  if(angle_to_do > M_PI){
+    angle_to_do = angle_to_do - 2*M_PI;
+  }
   ROS_INFO("Rotation to do: %f", angle_to_do*180/M_PI);
   return angle_to_do;
 }

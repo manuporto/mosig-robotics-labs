@@ -9,11 +9,11 @@
 #include <tf/transform_datatypes.h>
 #include "geometry_msgs/Point.h"
 
-#define rotation_error 0.12 //radians
+#define rotation_error 0.07 //radians
 
-#define kp 0.2
+#define kp 0.1
 #define ki 0.001
-#define kd 0.2
+#define kd 0.15
 
 class rotation {
 private:
@@ -117,19 +117,11 @@ void update() {
 
         float rotation_speed = 0;
         if ( cond_rotation ) {
-            //TO COMPLETE
-            //Implementation of a PID controller for rotation_to_do;
-            //rotation_speed = kp*error + ki * error + kp * error_derivation;
 
             float error_derivation;//To complete
 
             error_integral += error;
             error_derivation = error - error_previous;
-
-            //ROS_INFO("error_derivaion: %f", error_derivation);
-
-            //error_integral = ...;//To complete
-            //ROS_INFO("error_integral: %f", error_integral);
 
             //control of rotation with a PID controller
             rotation_speed = kp * error + ki * error_integral + kd * error_derivation;

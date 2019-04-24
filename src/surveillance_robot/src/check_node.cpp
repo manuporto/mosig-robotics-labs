@@ -44,11 +44,11 @@ class check_node {
                 if (recalculationNeeded()) {
                     recalculation.data = true;
                     pub_recalculate_goal.publish(recalculation);
-                    ROS_INFO("Recalculation needed.");
+                    ROS_INFO_STREAM("Recalculation needed." << recalculation.data);
                 } else {
                     recalculation.data = false;
                     pub_recalculate_goal.publish(recalculation);
-                    ROS_INFO("Recalculation not needed.");
+                    ROS_INFO_STREAM("Recalculation not needed."  << recalculation.data);
                 }
                 new_next_point = false;
                 new_pose = false;

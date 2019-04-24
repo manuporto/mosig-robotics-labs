@@ -15,14 +15,14 @@ decision node:
 ==========
 + subscribes:
   + move_base_simple/goal
-  + global_planer/planned_path
+  + global_planner/planned_path
   + local_planner/translation_rotation
   + rotation_node/rotation_done
   + translation_node/translation_done
   + check_node/recalculate_goal
 
 + publishes
-  + global_planer/global_goal
+  + global_planner/global_goal
   + local_planner/local_goal
   + rotation_node/rotation_to_do
   + translation_node/translation_to_do
@@ -53,7 +53,7 @@ global_planer goal:
   + global_planner/global_goal
 
 + publishes
-  + global_planer/planned_path
+  + global_planner/planned_path
 
 rotation_node:
 ==========

@@ -46,12 +46,12 @@ public:
   global_planner() {
 
     // Communication with decision node
-    sub_goal = n.subscribe("move_base_simple/goal", 1,
+    sub_goal = n.subscribe("global_planner/global_goal", 1,
                            &global_planner::final_goal_to_reachCallback, this);
     sub_initial_position =
-        n.subscribe("/initialpose", 1, &global_planner::getPosition, this);
+        n.subscribe("amcl_pose", 1, &global_planner::getPosition, this);
     pub_path_to_go =
-        n.advertise<geometry_msgs::PoseArray>("global_planer/planned_path", 1);
+        n.advertise<geometry_msgs::PoseArray>("global_planner/planned_path", 1);
 
     new_initial_position = false;
     new_goal_to_reach = false;
@@ -153,7 +153,7 @@ public:
       pred.push_back(startnode);
       visited.push_back(0);
     }
-    
+
     distance[startnode] = 0;
     visited[startnode] = 1;
     count = 1;
@@ -178,7 +178,7 @@ public:
           }
       count++;
     }
-    
+
     if (goalPoint != startnode) {
       j = goalPoint;
       do {
@@ -240,10 +240,10 @@ public:
   }
 
   void
-  final_goal_to_reachCallback(const geometry_msgs::PoseStamped::ConstPtr &msg) {
+  final_goal_to_reachCallback(const geometry_msgs::Point::ConstPtr &msg) {
     ROS_INFO_STREAM("Received global goal");
-    goal_to_reach.x = msg->pose.position.x;
-    goal_to_reach.y = msg->pose.position.y;
+    goal_to_reach.x = msg->x;
+    goal_to_reach.y = msg->y;
     ROS_INFO_STREAM("Saved as goal_to_reach :" << goal_to_reach);
     new_goal_to_reach = true;
   }
