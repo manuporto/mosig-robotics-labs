@@ -148,7 +148,7 @@ float deg_from_quaternion(geometry_msgs::Quaternion msg){
 
 
     float degree = rpy.z;
-    ROS_INFO("Angle from quaternion: %f", degree*180/M_PI);
+    // ROS_INFO("Angle from quaternion: %f", degree*180/M_PI);
     if(degree > 0){
       degree = abs(2*M_PI - degree);
     }
@@ -156,7 +156,7 @@ float deg_from_quaternion(geometry_msgs::Quaternion msg){
       degree = abs(degree);
     }
 
-    ROS_INFO("Edited: %f", degree*180/M_PI);
+    // ROS_INFO("Edited: %f", degree*180/M_PI);
     return degree;
 }
 
@@ -164,10 +164,9 @@ float get_angle_to_do(geometry_msgs::Pose position, geometry_msgs::Point point){
   geometry_msgs::Point current_point = position.position;
   geometry_msgs::Quaternion current_orientation = position.orientation;
   float angle_to_do = atan2( point.y-current_point.y, point.x-current_point.x);
-  ROS_INFO("Rotation to do without current orientation: %f\n", angle_to_do*180/M_PI);
+  // ROS_INFO("Rotation to do without current orientation: %f\n", angle_to_do*180/M_PI);
   deg_from_quaternion(current_orientation);
   angle_to_do+=deg_from_quaternion(current_orientation);
-  ROS_INFO("Rotation to do: %f", angle_to_do*180/M_PI);
   if(angle_to_do > M_PI){
     angle_to_do = angle_to_do - 2*M_PI;
   }

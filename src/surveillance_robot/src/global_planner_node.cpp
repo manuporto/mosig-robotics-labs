@@ -57,7 +57,7 @@ public:
     new_goal_to_reach = false;
 
     MapFileParser mparser(
-        "src/surveillance_robot/res/corridor/corridor_graph.json");
+        "src/surveillance_robot/res/corridor/corridor_graph_simple.json");
     number_of_vertices = mparser.getNumberOfVertices();
     std::vector<std::pair<float, float>> points = mparser.getPoints();
     for (int i = 0; i < points.size(); i++) {
@@ -99,6 +99,10 @@ public:
   void update() {
 
     if (new_initial_position && new_goal_to_reach) {
+      for (size_t i = 0; i < number_of_vertices; i++) {
+        ROS_INFO_STREAM("Point: " << i << pointArray[i]);
+        /* code */
+      }
       srcPoint = get_nearest_node(pointArray, initial_position);
       goalPoint = get_nearest_node(pointArray, goal_to_reach);
       ROS_INFO_STREAM("srcPoint: " << srcPoint << " goalPoint: " << goalPoint

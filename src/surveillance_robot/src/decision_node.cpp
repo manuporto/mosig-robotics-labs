@@ -248,6 +248,7 @@ void update() {
 geometry_msgs::Point get_next_point(){
   geometry_msgs::Point point = path.front();
   path.pop();
+  ROS_INFO_STREAM("Next point " << point);
   return point;
 }
 
