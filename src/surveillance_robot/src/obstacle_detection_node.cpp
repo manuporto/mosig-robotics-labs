@@ -128,10 +128,11 @@ void scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan) {
     init_laser = true;
 
     // store the important data related to laserscanner
-    range_min = scan->range_min; // TODO change this to avoid detecting obstacles on robair's sides
+    range_min = scan->range_min;
     range_max = scan->range_max;
-    angle_min = scan->angle_min;
-    angle_max = scan->angle_max;
+    // TODO change this to avoid detecting obstacles on robair's sides
+    angle_min = (scan->angle_min) + 90;
+    angle_max = (scan->angle_max) - 90;
     angle_inc = scan->angle_increment;
     nb_beams = ((-1 * angle_min) + angle_max)/angle_inc;
 
