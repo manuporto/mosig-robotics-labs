@@ -15,6 +15,9 @@
 #include <tf/transform_datatypes.h>
 #include <vector>
 #include <visualization_msgs/Marker.h>
+#include <cstdlib>
+
+
 class global_planner {
 private:
   ros::NodeHandle n;
@@ -46,8 +49,11 @@ private:
 
   visualization_msgs::Marker marker;
 
+  std_msgs::ColorRGBA color;
+
 public:
   global_planner() {
+    srand (static_cast <unsigned> (time(0)));
 
     // Communication with decision node
     sub_goal = n.subscribe("global_planner/global_goal", 1,
@@ -76,7 +82,7 @@ public:
     marker.scale.x = 0.5;
     marker.scale.y = 0.5;
     marker.scale.z = 0.5;
-
+    //
     // marker.color.a = 0.5;
     // marker.color.r = 0.0;
     // marker.color.g = 0.0;
@@ -103,18 +109,8 @@ public:
       marker.colors.push_back(c);
     }
 
-<<<<<<< HEAD
-    // ros::Rate rate(100);
-    // while(pub_path_rviz.getNumSubscribers() == 0){
-    //   rate.sleep();
-    // }
-
-    // pub_path_rviz.publish(marker);
-    // ROS_INFO("Published to rviz");
-=======
     pub_path_rviz.publish(marker);
     ROS_INFO("Published to rviz");
->>>>>>> a4334acb48387b29193b0ed2016ce027ee4eebd5
 
     graph = mparser.getAdjacencyMatrix();
     estimate_graph_position();
@@ -171,10 +167,10 @@ public:
         //fill the marker message
         geometry_msgs::Point p;
         std_msgs::ColorRGBA c;
-        c.a = 1.0;
-        c.g = 1.0;
-        c.r = 0.0;
-        c.b = 0.0;
+        c.a = color.a;
+        c.g = color.g;
+        c.r = color.r;
+        c.b = color.b;
         p.x = pose.position.x;
         p.y = pose.position.y;
         marker.points.push_back(p);
@@ -347,15 +343,6 @@ public:
     new_initial_position = true;
   }
 
-  void getPointGoal(const geometry_msgs::Point::ConstPtr &msg) {
-    ROS_INFO_STREAM("Received new global goal: " << msg);
-    goal_to_reach.position.x = msg->x;
-    goal_to_reach.position.y = msg->y;
-    goal_to_reach.position.z = 0;
-    ROS_INFO_STREAM("Saved as goal_to_reach :" << goal_to_reach);
-    new_goal_to_reach = true;
-  }
-
   void final_goal_to_reachCallback(const geometry_msgs::Point::ConstPtr &msg) {
     ROS_INFO_STREAM("Received global goal");
     goal_to_reach.position.x = msg->x;
@@ -363,6 +350,15 @@ public:
     ROS_INFO_STREAM("Saved as goal_to_reach :" << goal_to_reach);
     new_goal_to_reach = true;
     finalPathPoint.erase(finalPathPoint.begin(), finalPathPoint.end());
+
+
+    color.a = 1;
+    color.r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+    color.g = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+    color.b = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+
+
+    ROS_INFO_STREAM("Color :" << color);
 
 
   }

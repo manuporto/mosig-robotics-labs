@@ -98,7 +98,7 @@ decision() {
     new_check = false;
     new_global_goal = false;
 
-    debug = true;
+    debug = false;
 
     //INFINITE LOOP TO COLLECT LASER DATA AND PROCESS THEM
     ros::Rate r(100);// this node will work at 10hz
@@ -117,6 +117,7 @@ void update() {
 
     if ( display_state ) {
         display_state = false;
+
         ROS_INFO("============state: %i============", state);
     }
 
@@ -145,9 +146,10 @@ void update() {
 
       if( local_goal.x ==0 && local_goal.y == 0 && local_goal.z == 0 ){
         state = 0;
-        ROS_INFO("Reached the final position");
+        ROS_INFO("Reached the final position. Waiting for a new global goal");
       }
       else{
+        wait();
           pub_local_planner.publish(local_goal);
           state = 2;
       }
@@ -233,16 +235,18 @@ void update() {
       if(check_reply == false){
         ROS_INFO("(decision_node) /Our position is correct");
         wait_user_input();
-
-
-        local_goal = get_next_point();
-        pub_local_planner.publish(local_goal);
-
-        if( local_goal.x ==0 && local_goal.y == 0 && local_goal.z == 0 ){
+        if (path.size() == 0){
           state = 0;
-          ROS_INFO("Reached the final position");
+          ROS_INFO("Reached the final position.");
+          system("aplay -t wav -d 5 -f cd ~/catkin_ws/src/surveillance_robot/res/KoolTheGang-CelebrationRadio_2.wav");
+          ROS_INFO("Waiting for a new Global goal.");
         }
+
+
         else{
+          local_goal = get_next_point();
+          wait();
+          pub_local_planner.publish(local_goal);
           state = 2;
         }
       }
@@ -250,6 +254,9 @@ void update() {
       //our position is not correct
       else{
         ROS_INFO("(decision_node) /Our position is not correct");
+        while(path.size() > 0){
+          path.pop();
+        }
         wait_user_input();
         std_msgs::Float32 msg_rotation_to_do;
         pub_global_planner.publish(global_goal);
@@ -288,6 +295,10 @@ void wait_user_input(){
   }
 }
 
+void wait(){
+  ros::Rate wait_rate(0.3);
+  wait_rate.sleep();
+}
 
 //CALLBACKS
 /*//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -12,9 +12,9 @@ using namespace std;
 
 #define safety_distance 0.2
 #define translation_error 0.04
-#define kp 0.4
+#define kp 0.3
 #define ki 0.0001
-#define kd 0.2
+#define kd 0.1
 
 class translation {
 private:

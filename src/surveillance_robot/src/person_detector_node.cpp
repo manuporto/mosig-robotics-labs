@@ -14,8 +14,8 @@
 #define cluster_threshold 0.2 //threshold for clustering
 
 //used for detection of motion
-#define detection_threshold 0.05 //threshold for motion detection
-#define dynamic_threshold 5 //to decide if a cluster is static or dynamic
+#define detection_threshold 0.4 //threshold for motion detection
+#define dynamic_threshold 95 //to decide if a cluster is static or dynamic
 
 //used for detection of moving legs
 #define leg_size_min 0.05
@@ -141,8 +141,11 @@ void update() {
             populateMarkerTopic();
 
             //to publish the goal_to_reach
-            if ( nb_moving_persons_detected )
-                pub_alarm.publish(true);
+            if ( nb_moving_persons_detected ){
+                ROS_INFO("Person detected, shooting!!!!");
+                system("aplay ~/catkin_ws/src/surveillance_robot/res/gun.wav");
+                nb_moving_persons_detected = 0;
+              }
         }
         else
             ROS_INFO("robot is moving");

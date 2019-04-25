@@ -3,7 +3,7 @@
 #include "geometry_msgs/PoseWithCovarianceStamped.h"
 #include "std_msgs/Bool.h"
 
-#define RECALCULATION_TRESHOLD 0.5
+#define RECALCULATION_THRESHOLD 0.6
 
 class check_node {
     private:
@@ -56,7 +56,7 @@ class check_node {
         }
 
         bool recalculationNeeded() {
-            return distancePoints(next_point, current_position_estim) > RECALCULATION_TRESHOLD;
+            return distancePoints(next_point, current_position_estim) > RECALCULATION_THRESHOLD;
         }
 
         void getNextPoint(const geometry_msgs::Point incoming_next_point) {
