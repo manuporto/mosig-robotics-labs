@@ -44,6 +44,8 @@ private:
   int srcPoint;
   int goalPoint;
 
+  visualization_msgs::Marker marker;
+
 public:
   global_planner() {
 
@@ -67,7 +69,6 @@ public:
     std::vector<std::pair<float, float>> points = mparser.getPoints();
 
     // display all intermidiate poitns in RVIZ
-    visualization_msgs::Marker marker;
     marker.header.frame_id = "/map";
     marker.header.stamp = ros::Time();
     marker.type = visualization_msgs::Marker::POINTS;
@@ -76,10 +77,10 @@ public:
     marker.scale.y = 0.5;
     marker.scale.z = 0.5;
 
-    marker.color.a = 1.0;
-    marker.color.r = 0.0;
-    marker.color.g = 1.0;
-    marker.color.b = 0.0;
+    // marker.color.a = 0.5;
+    // marker.color.r = 0.0;
+    // marker.color.g = 0.0;
+    // marker.color.b = 1.0;
 
     for (int i = 0; i < points.size(); i++) {
       geometry_msgs::Pose aPose;
@@ -91,7 +92,15 @@ public:
       geometry_msgs::Point p;
       p.x = aPose.position.x;
       p.y = aPose.position.y;
+      std_msgs::ColorRGBA c;
+      c.a = 1.0;
+      c.g = 0.0;
+      c.r = 0.0;
+      c.b = 1.0;
+      p.x = aPose.position.x;
+      p.y = aPose.position.y;
       marker.points.push_back(p);
+      marker.colors.push_back(c);
     }
 
     pub_path_rviz.publish(marker);
@@ -147,11 +156,25 @@ public:
       pubFinalPathPoint.poses.assign(finalPathPoint.begin(),
                                      finalPathPoint.end());
 
-      // ros::Rate rate(10);
-      // while(pub_path_to_go.getNumSubscribers() == 0){
-      //   ROS_INFO("Waiting for decision node... %d",
-      //   pub_path_to_go.getNumSubscribers()); rate.sleep();
-      // }
+      ROS_INFO("========= Path: ");
+      for(geometry_msgs::Pose pose : finalPathPoint){
+        //fill the marker message
+        geometry_msgs::Point p;
+        std_msgs::ColorRGBA c;
+        c.a = 1.0;
+        c.g = 1.0;
+        c.r = 0.0;
+        c.b = 0.0;
+        p.x = pose.position.x;
+        p.y = pose.position.y;
+        marker.points.push_back(p);
+        marker.colors.push_back(c);
+        ROS_INFO_STREAM("====" << p);
+      }
+
+
+      pub_path_rviz.publish(marker);
+      ROS_INFO("Publishing path to rviz");
 
       pub_path_to_go.publish(pubFinalPathPoint);
       new_goal_to_reach = false;
@@ -165,7 +188,6 @@ public:
     for (int i = 0; i <= n; i++) {
       j = path[i];
       finalPathPoint.push_back(pointArray[j]);
-      ROS_INFO_STREAM("========= Path: " << finalPathPoint[i] << " ");
     }
     finalPathPoint.push_back(goal_to_reach);
   }
@@ -261,12 +283,12 @@ public:
     float min_distance = std::numeric_limits<float>::max();
     int nearest_node = 0;
     for (int i = 0; i < nodes.size(); i++) {
-      ROS_INFO_STREAM("Node: " << nodes[i].position.x << ", "
-                               << nodes[i].position.y << std::endl);
+      //ROS_INFO_STREAM("Node: " << nodes[i].position.x << ", "
+      //                         << nodes[i].position.y << std::endl);
       float distance = distancePoints(nodes[i].position, current_node);
-      ROS_INFO_STREAM("Distance: " << distance << std::endl);
+      // ROS_INFO_STREAM("Distance: " << distance << std::endl);
       if (distance < min_distance) {
-        ROS_INFO_STREAM("New Min Distance: " << distance << std::endl);
+        // ROS_INFO_STREAM("New Min Distance: " << distance << std::endl);
         min_distance = distance;
         nearest_node = i;
       }
@@ -330,6 +352,9 @@ public:
     goal_to_reach.position.y = msg->y;
     ROS_INFO_STREAM("Saved as goal_to_reach :" << goal_to_reach);
     new_goal_to_reach = true;
+    finalPathPoint.erase(finalPathPoint.begin(), finalPathPoint.end());
+
+
   }
 };
 
