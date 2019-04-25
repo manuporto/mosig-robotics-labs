@@ -94,11 +94,6 @@ public:
       marker.points.push_back(p);
     }
 
-    // ros::Rate rate(100);
-    // while(pub_path_rviz.getNumSubscribers() == 0){
-    //   rate.sleep();
-    // }
-
     pub_path_rviz.publish(marker);
     ROS_INFO("Published to rviz");
 
