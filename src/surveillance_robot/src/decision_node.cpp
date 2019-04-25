@@ -238,13 +238,20 @@ void update() {
         local_goal = get_next_point();
         pub_local_planner.publish(local_goal);
 
-        state = 2;
+        if( local_goal.x ==0 && local_goal.y == 0 && local_goal.z == 0 ){
+          state = 0;
+          ROS_INFO("Reached the final position");
+        }
+        else{
+          state = 2;
+        }
       }
 
       //our position is not correct
       else{
         ROS_INFO("(decision_node) /Our position is not correct");
         wait_user_input();
+        std_msgs::Float32 msg_rotation_to_do;
         pub_global_planner.publish(global_goal);
 
         state = 1;
