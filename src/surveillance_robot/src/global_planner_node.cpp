@@ -135,8 +135,8 @@ public:
       goal_to_reach_point.x = goal_to_reach.position.x;
       goal_to_reach_point.y = goal_to_reach.position.y;
 
-      srcPoint = get_nearest_point(pointArray, initial_position);
-      goalPoint = get_nearest_point(pointArray, goal_to_reach_point);
+      srcPoint = get_nearest_point(pointArray, initial_position, goal_to_reach_point);
+      goalPoint = get_nearest_point(pointArray, goal_to_reach_point, initial_position);
       ROS_INFO_STREAM("srcPoint: " << srcPoint << " goalPoint: " << goalPoint
                                    << std::endl);
       dijkstra(srcPoint);
@@ -274,18 +274,18 @@ public:
     return nearest_node;
   }
 
-  int get_nearest_point(std::vector<geometry_msgs::Pose> nodes,
+  int get_nearest_point(std::vector<geometry_msgs::Pose> nodes, geometry_msgs::Point initial_node,
                         geometry_msgs::Point objective_node) {
     std::pair<int, int> nearest_points =
-        get_two_nearest_nodes(nodes, objective_node);
+        get_two_nearest_nodes(nodes, initial_node);
     ROS_DEBUG_STREAM("Got the two nearest points: "
                      << nodes[nearest_points.first].position << " and "
                      << nodes[nearest_points.second].position);
 
     float distance1 = distancePoints(nodes[nearest_points.first].position,
-                                     goal_to_reach.position);
+                                     objective_node);
     float distance2 = distancePoints(nodes[nearest_points.second].position,
-                                     goal_to_reach.position);
+                                     objective_node);
 
     if (distance1 < distance2) {
       ROS_DEBUG_STREAM(
