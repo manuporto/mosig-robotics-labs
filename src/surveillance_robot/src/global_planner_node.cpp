@@ -103,7 +103,6 @@ public:
       marker.colors.push_back(c);
     }
 
-<<<<<<< HEAD
     // ros::Rate rate(100);
     // while(pub_path_rviz.getNumSubscribers() == 0){
     //   rate.sleep();
@@ -111,10 +110,6 @@ public:
 
     // pub_path_rviz.publish(marker);
     // ROS_INFO("Published to rviz");
-=======
-    pub_path_rviz.publish(marker);
-    ROS_INFO("Published to rviz");
->>>>>>> 6023bc3bf3d00e7400a9939d5aa0aa8f12563876
 
     graph = mparser.getAdjacencyMatrix();
     estimate_graph_position();
