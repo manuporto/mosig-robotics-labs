@@ -53,10 +53,10 @@ public:
     sub_initial_position =
         n.subscribe("amcl_pose", 1, &global_planner::getPosition, this);
     pub_path_to_go =
-        n.advertise<geometry_msgs::PoseArray>("global_planner/planned_path", 1);
+        n.advertise<geometry_msgs::PoseArray>("global_planner/planned_path", 1, true);
 
     pub_path_rviz =
-        n.advertise<visualization_msgs::Marker>("global_planner/rviz", 1);
+        n.advertise<visualization_msgs::Marker>("global_planner/rviz", 1, true);
 
     new_initial_position = false;
     new_goal_to_reach = false;
@@ -94,10 +94,10 @@ public:
       marker.points.push_back(p);
     }
 
-    ros::Rate rate(100);
-    while(pub_path_rviz.getNumSubscribers() == 0){
-      rate.sleep();
-    }
+    // ros::Rate rate(100);
+    // while(pub_path_rviz.getNumSubscribers() == 0){
+    //   rate.sleep();
+    // }
 
     pub_path_rviz.publish(marker);
     ROS_INFO("Published to rviz");
@@ -153,10 +153,11 @@ public:
       pubFinalPathPoint.poses.assign(finalPathPoint.begin(),
                                      finalPathPoint.end());
 
-      ros::Rate rate(100);
-      while(pub_path_to_go.getNumSubscribers() == 0){
-        rate.sleep();
-      }
+      // ros::Rate rate(10);
+      // while(pub_path_to_go.getNumSubscribers() == 0){
+      //   ROS_INFO("Waiting for decision node... %d", pub_path_to_go.getNumSubscribers());
+      //   rate.sleep();
+      // }
 
       pub_path_to_go.publish(pubFinalPathPoint);
       new_goal_to_reach = false;
@@ -302,8 +303,8 @@ public:
 
 int main(int argc, char **argv) {
   ROS_INFO("(planner_node) waiting for a /goal_to_reach and an "
-           "/initial_position");
-  ros::init(argc, argv, "planner");
+           "/amcl_pose");
+  ros::init(argc, argv, "global_planner");
 
   global_planner bsObject;
 

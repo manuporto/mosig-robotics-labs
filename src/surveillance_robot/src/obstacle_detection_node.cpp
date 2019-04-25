@@ -130,6 +130,7 @@ void scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan) {
     // store the important data related to laserscanner
     range_min = scan->range_min; // TODO change this to avoid detecting obstacles on robair's sides
     range_max = scan->range_max;
+    // ROS_WARN("angle min, max: %f %f", scan->angle_min*180/M_PI, scan->angle_max*180/M_PI);
     angle_min = scan->angle_min;
     angle_max = scan->angle_max;
     angle_inc = scan->angle_increment;

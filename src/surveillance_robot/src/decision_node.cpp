@@ -72,7 +72,7 @@ decision() {
     sub_final_goal_to_reach = n.subscribe("move_base_simple/goal", 1, &decision::final_goal_to_reachCallback, this);
 
     //comunication with the global planner
-    pub_global_planner = n.advertise<geometry_msgs::Point>("global_planner/global_goal", 1);
+    pub_global_planner = n.advertise<geometry_msgs::Point>("global_planner/global_goal", 1, true);
     sub_global_planner = n.subscribe("global_planner/planned_path", 1, &decision::path_points_Callback, this);
 
     //communication with the local planner
@@ -125,8 +125,9 @@ void update() {
       ROS_INFO("(decision_node) /Publishing the global goal to the global planner");
       wait_user_input();
 
-      ros::Rate rate(100);
+      ros::Rate rate(10);
       while(pub_global_planner.getNumSubscribers() == 0){
+        ROS_INFO("Publishing new goal...");
         rate.sleep();
       }
       pub_global_planner.publish(global_goal);
@@ -140,8 +141,17 @@ void update() {
       ROS_INFO("(decision_node) /Publishing next local goal to the local planner");
       wait_user_input();
       local_goal = get_next_point();
-      pub_local_planner.publish(local_goal);
-      state = 2;
+
+
+      if( local_goal.x ==0 && local_goal.y == 0 && local_goal.z == 0 ){
+        state = 0;
+        ROS_INFO("Reached the final position");
+      }
+      else{
+          pub_local_planner.publish(local_goal);
+          state = 2;
+      }
+
       new_path = false;
       display_state = true;
     }
