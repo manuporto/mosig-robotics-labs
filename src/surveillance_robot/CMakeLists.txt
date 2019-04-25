@@ -141,6 +141,8 @@ add_executable(${PROJECT_NAME}_translation_node src/translation_node.cpp)
 add_executable(${PROJECT_NAME}_local_planner_node src/local_planner_node.cpp)
 add_executable(${PROJECT_NAME}_global_planner_node src/global_planner_node.cpp)
 add_executable(${PROJECT_NAME}_obstacle_detection_node src/obstacle_detection_node.cpp)
+add_executable(${PROJECT_NAME}_person_detector_node src/person_detector_node.cpp)
+add_executable(${PROJECT_NAME}_robot_moving_node src/robot_moving_node.cpp)
 add_executable(${PROJECT_NAME}_publisher_position src/publisher_position.cpp)
 
 ## Rename C++ executable without prefix
@@ -164,6 +166,8 @@ target_link_libraries(${PROJECT_NAME}_decision_node ${catkin_LIBRARIES})
 target_link_libraries(${PROJECT_NAME}_local_planner_node ${catkin_LIBRARIES})
 target_link_libraries(${PROJECT_NAME}_global_planner_node ${catkin_LIBRARIES})
 target_link_libraries(${PROJECT_NAME}_obstacle_detection_node ${catkin_LIBRARIES})
+target_link_libraries(${PROJECT_NAME}_person_detector_node ${catkin_LIBRARIES})
+target_link_libraries(${PROJECT_NAME}_robot_moving_node ${catkin_LIBRARIES})
 target_link_libraries(${PROJECT_NAME}_publisher_position ${catkin_LIBRARIES})
 #############
 ## Install ##
