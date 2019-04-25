@@ -5,6 +5,7 @@
 #include "map_file_parser.hpp"
 #include "nav_msgs/Odometry.h"
 #include "ros/ros.h"
+#include "std_msgs/ColorRGBA.h"
 #include "std_msgs/Float32.h"
 #include "std_msgs/String.h"
 #include <cmath>
@@ -14,7 +15,6 @@
 #include <tf/transform_datatypes.h>
 #include <vector>
 #include <visualization_msgs/Marker.h>
-#include "std_msgs/ColorRGBA.h"
 class global_planner {
 private:
   ros::NodeHandle n;
@@ -54,8 +54,8 @@ public:
                            &global_planner::final_goal_to_reachCallback, this);
     sub_initial_position =
         n.subscribe("amcl_pose", 1, &global_planner::getPosition, this);
-    pub_path_to_go =
-        n.advertise<geometry_msgs::PoseArray>("global_planner/planned_path", 1, true);
+    pub_path_to_go = n.advertise<geometry_msgs::PoseArray>(
+        "global_planner/planned_path", 1, true);
 
     pub_path_rviz =
         n.advertise<visualization_msgs::Marker>("global_planner/rviz", 1, true);
@@ -68,7 +68,7 @@ public:
     number_of_vertices = mparser.getNumberOfVertices();
     std::vector<std::pair<float, float>> points = mparser.getPoints();
 
-    //display all intermidiate poitns in RVIZ
+    // display all intermidiate poitns in RVIZ
     marker.header.frame_id = "/map";
     marker.header.stamp = ros::Time();
     marker.type = visualization_msgs::Marker::POINTS;
@@ -88,7 +88,7 @@ public:
       aPose.position.y = points[i].second;
       pointArray.push_back(aPose);
 
-      //fill the marker message
+      // fill the marker message
       geometry_msgs::Point p;
       p.x = aPose.position.x;
       p.y = aPose.position.y;
@@ -103,6 +103,7 @@ public:
       marker.colors.push_back(c);
     }
 
+<<<<<<< HEAD
     // ros::Rate rate(100);
     // while(pub_path_rviz.getNumSubscribers() == 0){
     //   rate.sleep();
@@ -110,6 +111,10 @@ public:
 
     // pub_path_rviz.publish(marker);
     // ROS_INFO("Published to rviz");
+=======
+    pub_path_rviz.publish(marker);
+    ROS_INFO("Published to rviz");
+>>>>>>> a4334acb48387b29193b0ed2016ce027ee4eebd5
 
     graph = mparser.getAdjacencyMatrix();
     estimate_graph_position();
@@ -149,10 +154,10 @@ public:
       goal_to_reach_point.x = goal_to_reach.position.x;
       goal_to_reach_point.y = goal_to_reach.position.y;
 
-
-      srcPoint = get_nearest_node(pointArray, initial_position);
-      goalPoint = get_nearest_node(pointArray, goal_to_reach_point);
-      // ROS_INFO_STREAM("srcPoint: " << srcPoint << " goalPoint: " << goalPoint << std::endl);
+      srcPoint = get_nearest_point(pointArray, initial_position, goal_to_reach_point);
+      goalPoint = get_nearest_point(pointArray, goal_to_reach_point, initial_position);
+      ROS_INFO_STREAM("srcPoint: " << srcPoint << " goalPoint: " << goalPoint
+                                   << std::endl);
       dijkstra(srcPoint);
 
       ROS_INFO("Publishing new path to go");
@@ -161,7 +166,7 @@ public:
       pubFinalPathPoint.poses.assign(finalPathPoint.begin(),
                                      finalPathPoint.end());
 
-       ROS_INFO("========= Path: ");
+      ROS_INFO("========= Path: ");
       for(geometry_msgs::Pose pose : finalPathPoint){
         //fill the marker message
         geometry_msgs::Point p;
@@ -268,12 +273,28 @@ public:
     getFinalPathPoint(mainPath, cnt);
   }
 
+  std::pair<int, int>
+  get_two_nearest_nodes(std::vector<geometry_msgs::Pose> nodes,
+                        geometry_msgs::Point current_node) {
+    std::vector<geometry_msgs::Pose> nodes_without_nearest(nodes);
+
+    int first_nearest = get_nearest_node(nodes, current_node);
+    nodes_without_nearest[first_nearest].position.x =
+        std::numeric_limits<float>::max();
+    nodes_without_nearest[first_nearest].position.y =
+        std::numeric_limits<float>::max();
+    int second_nearest = get_nearest_node(nodes_without_nearest, current_node);
+
+    return std::pair<int, int>(first_nearest, second_nearest);
+  }
+
   int get_nearest_node(std::vector<geometry_msgs::Pose> nodes,
                        geometry_msgs::Point current_node) {
     float min_distance = std::numeric_limits<float>::max();
     int nearest_node = 0;
-    for (int i = 0; i < number_of_vertices; i++) {
-      // ROS_INFO_STREAM("Node: " << nodes[i].position.x << ", " << nodes[i].position.y << std::endl);
+    for (int i = 0; i < nodes.size(); i++) {
+      //ROS_INFO_STREAM("Node: " << nodes[i].position.x << ", "
+      //                         << nodes[i].position.y << std::endl);
       float distance = distancePoints(nodes[i].position, current_node);
       // ROS_INFO_STREAM("Distance: " << distance << std::endl);
       if (distance < min_distance) {
@@ -283,6 +304,30 @@ public:
       }
     }
     return nearest_node;
+  }
+
+  int get_nearest_point(std::vector<geometry_msgs::Pose> nodes, geometry_msgs::Point initial_node,
+                        geometry_msgs::Point objective_node) {
+    std::pair<int, int> nearest_points =
+        get_two_nearest_nodes(nodes, initial_node);
+    ROS_DEBUG_STREAM("Got the two nearest points: "
+                     << nodes[nearest_points.first].position << " and "
+                     << nodes[nearest_points.second].position);
+
+    float distance1 = distancePoints(nodes[nearest_points.first].position,
+                                     objective_node);
+    float distance2 = distancePoints(nodes[nearest_points.second].position,
+                                     objective_node);
+
+    if (distance1 < distance2) {
+      ROS_DEBUG_STREAM(
+          "Returning first point: " << nodes[nearest_points.first].position);
+      return nearest_points.first;
+    } else {
+      ROS_DEBUG_STREAM(
+          "Returning first point: " << nodes[nearest_points.first].position);
+      return nearest_points.second;
+    }
   }
 
   // Distance between two points
@@ -311,8 +356,7 @@ public:
     new_goal_to_reach = true;
   }
 
-  void
-  final_goal_to_reachCallback(const geometry_msgs::Point::ConstPtr &msg) {
+  void final_goal_to_reachCallback(const geometry_msgs::Point::ConstPtr &msg) {
     ROS_INFO_STREAM("Received global goal");
     goal_to_reach.position.x = msg->x;
     goal_to_reach.position.y = msg->y;
